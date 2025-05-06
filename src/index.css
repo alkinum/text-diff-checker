@@ -35,6 +35,13 @@
 
     --radius: 0.5rem;
 
+    --diff-added-bg: 142 76% 95%;
+    --diff-added-text: 142 72% 29%;
+    --diff-removed-bg: 0 84% 95%;  
+    --diff-removed-text: 0 72% 42%;
+    --diff-changed-bg: 217 92% 95%;
+    --diff-changed-text: 217 92% 35%;
+
     --sidebar-background: 0 0% 98%;
     --sidebar-foreground: 240 5.3% 26.1%;
     --sidebar-primary: 240 5.9% 10%;
@@ -73,6 +80,13 @@
     --border: 240 3.7% 15.9%;
     --input: 240 3.7% 15.9%;
     --ring: 262 83% 58%;
+    
+    --diff-added-bg: 142 76% 12%;
+    --diff-added-text: 142 72% 70%;
+    --diff-removed-bg: 0 84% 12%;
+    --diff-removed-text: 0 72% 70%;
+    --diff-changed-bg: 217 92% 12%;
+    --diff-changed-text: 217 92% 70%;
 
     --sidebar-background: 240 5.9% 10%;
     --sidebar-foreground: 240 4.8% 95.9%;
@@ -115,7 +129,7 @@
   @apply bg-diff-changed-bg text-diff-changed-text border-l-2 border-blue-500;
 }
 
-.token-deleted {
+.token-removed {
   @apply bg-red-200/60 dark:bg-red-900/50 text-red-800 dark:text-red-200 rounded-sm px-0.5;
 }
 

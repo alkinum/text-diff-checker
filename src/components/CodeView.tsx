@@ -60,12 +60,12 @@ const CodeView: React.FC<CodeViewProps> = ({
             {title}
           </div>
         )}
-        <div className="flex flex-1 min-w-full">
+        <div className="flex flex-1 min-w-full overflow-hidden">
           {showLineNumbers && (
             <div className="text-right pr-4 py-4 bg-muted/30 text-muted-foreground select-none min-w-[3rem] sticky left-0 z-10">
               {lines.map((line, i) => (
-                <div key={i} className="text-xs leading-5">
-                  {line.lineNumber}
+                <div key={i} className={`text-xs leading-5 ${line.spacer ? 'text-transparent' : ''}`}>
+                  {line.spacer ? '' : line.lineNumber}
                 </div>
               ))}
             </div>
@@ -73,6 +73,12 @@ const CodeView: React.FC<CodeViewProps> = ({
           <pre className="p-4 overflow-visible flex-1 m-0">
             <code className={`language-${language}`}>
               {lines.map((line, i) => {
+                // Handle spacer lines
+                if (line.spacer) {
+                  return <div key={i} className="block h-5"></div>;
+                }
+                
+                // Determine line class
                 let className = "block line-highlight";
                 if (line.added) className += " line-added";
                 if (line.removed) className += " line-removed";
@@ -84,7 +90,7 @@ const CodeView: React.FC<CodeViewProps> = ({
                       {line.inlineChanges.map((part, j) => {
                         let spanClass = "";
                         if (part.added) spanClass += " token-added";
-                        if (part.removed) spanClass += " token-deleted";
+                        if (part.removed) spanClass += " token-removed";
                         
                         return (
                           <span 

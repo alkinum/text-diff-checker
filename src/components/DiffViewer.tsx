@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -14,18 +15,15 @@ const DiffViewer: React.FC = () => {
   const [leftText, setLeftText] = useState("");
   const [rightText, setRightText] = useState("");
   const [diff, setDiff] = useState<FormattedDiff | null>(null);
-  const [leftLanguage, setLeftLanguage] = useState("plaintext");
-  const [rightLanguage, setRightLanguage] = useState("plaintext");
+  const [language, setLanguage] = useState("plaintext"); // Single language state
   const [selectedView, setSelectedView] = useState<"input" | "diff">("input");
   const { toast } = useToast();
 
   // Detect language when text changes
   useEffect(() => {
-    if (leftText) {
-      setLeftLanguage(detectLanguage(leftText));
-    }
-    if (rightText) {
-      setRightLanguage(detectLanguage(rightText));
+    if (leftText || rightText) {
+      const detectedLanguage = detectLanguage(leftText || rightText);
+      setLanguage(detectedLanguage);
     }
   }, [leftText, rightText]);
 
@@ -86,8 +84,8 @@ const DiffViewer: React.FC = () => {
               <div className="flex justify-between items-center">
                 <Label htmlFor="original" className="text-base">Original Text</Label>
                 <FormatSelector 
-                  selectedLanguage={leftLanguage} 
-                  onLanguageChange={setLeftLanguage}
+                  selectedLanguage={language} 
+                  onLanguageChange={setLanguage}
                 />
               </div>
               <Textarea
@@ -103,8 +101,8 @@ const DiffViewer: React.FC = () => {
               <div className="flex justify-between items-center">
                 <Label htmlFor="modified" className="text-base">Modified Text</Label>
                 <FormatSelector 
-                  selectedLanguage={rightLanguage} 
-                  onLanguageChange={setRightLanguage}
+                  selectedLanguage={language} 
+                  onLanguageChange={setLanguage}
                 />
               </div>
               <Textarea
@@ -124,8 +122,7 @@ const DiffViewer: React.FC = () => {
               leftContent={leftText}
               rightContent={rightText}
               diff={diff}
-              leftLanguage={leftLanguage}
-              rightLanguage={rightLanguage}
+              language={language}
             />
           ) : (
             <div className="flex justify-center items-center min-h-[300px] bg-muted/30 rounded-lg">

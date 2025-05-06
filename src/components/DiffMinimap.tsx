@@ -1,7 +1,6 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import { type DiffResultWithLineNumbers } from '@/utils/diffUtils';
-import { ArrowUp, ArrowDown } from 'lucide-react';
 
 interface DiffMinimapProps {
   lines: DiffResultWithLineNumbers[];
@@ -51,12 +50,16 @@ const DiffMinimap: React.FC<DiffMinimapProps> = ({ lines, containerRef, position
     containerRef.current.scrollTop = clickPosition * ratio;
   };
 
-  // Function to find groups of consecutive added/removed lines
+  // Filter out spacer lines
+  const nonSpacerLines = lines.filter(line => !line.spacer);
+  const totalLines = nonSpacerLines.length;
+  
+  // Function to find groups of consecutive added/removed/modified lines
   const findChangedLineGroups = () => {
     const groups: { start: number, end: number, type: 'added' | 'removed' | 'modified' }[] = [];
     let currentGroup: { start: number, end: number, type: 'added' | 'removed' | 'modified' } | null = null;
     
-    lines.forEach((line, index) => {
+    nonSpacerLines.forEach((line, index) => {
       let type: 'added' | 'removed' | 'modified' | null = null;
       if (line.added) type = 'added';
       else if (line.removed) type = 'removed';
@@ -85,51 +88,52 @@ const DiffMinimap: React.FC<DiffMinimapProps> = ({ lines, containerRef, position
   };
 
   const changedGroups = findChangedLineGroups();
-  const totalLines = lines.length;
 
   return (
-    <div className={`absolute ${position === 'right' ? 'right-1' : 'right-1'} top-0 h-full w-2 flex flex-col`}>
+    <div className={`absolute ${position === 'right' ? 'right-1' : 'right-1'} top-16 bottom-2 w-2 flex flex-col`}>
       <div 
         ref={minimapRef}
-        className="flex-1 bg-transparent rounded-sm relative cursor-pointer my-2"
+        className="flex-1 bg-slate-100 dark:bg-slate-800 rounded-sm relative cursor-pointer"
         onClick={handleMinimapClick}
       >
+        {/* Show changed blocks in the minimap */}
         {changedGroups.map((group, i) => {
           const top = (group.start / totalLines) * 100;
-          const height = ((group.end - group.start + 1) / totalLines) * 100;
-          let colorClass = '';
+          const height = Math.max(1, ((group.end - group.start + 1) / totalLines) * 100);
           
+          let colorClass = '';
           switch (group.type) {
             case 'added':
-              colorClass = 'bg-green-500';
+              colorClass = position === 'left' ? '' : 'bg-green-500';
               break;
             case 'removed':
-              colorClass = 'bg-red-500';
+              colorClass = position === 'left' ? 'bg-red-500' : '';
               break;
             case 'modified':
               colorClass = position === 'left' ? 'bg-red-400' : 'bg-green-400';
               break;
           }
           
+          if (!colorClass) return null;
+          
           return (
             <div 
               key={i}
-              className={`absolute ${colorClass} w-full rounded-sm`}
+              className={`absolute ${colorClass} w-full`}
               style={{
                 top: `${top}%`,
                 height: `${Math.max(1, height)}%`,
-                opacity: 0.8
               }}
             />
           );
         })}
         
+        {/* Current viewport indicator */}
         <div 
-          className="absolute bg-gray-500/30 w-full rounded-sm"
+          className="absolute bg-gray-500/40 dark:bg-gray-400/40 w-full"
           style={{
             top: viewportPosition.top,
             height: Math.max(10, viewportPosition.height),
-            opacity: 0.8
           }}
         />
       </div>
