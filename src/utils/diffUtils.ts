@@ -1,4 +1,3 @@
-
 import { diffLines, diffWords } from 'diff';
 
 // Types for our diff functions
@@ -23,6 +22,7 @@ export interface DiffResultWithLineNumbers extends DiffResult {
     removed?: boolean;
   }[];
   spacer?: boolean; // To indicate this is a placeholder for spacing
+  extraLine?: boolean; // To indicate this line exists in original but not in modified
 }
 
 // Function to compute line-by-line differences with proper alignment
@@ -117,7 +117,16 @@ export function computeLineDiff(oldText: string, newText: string): FormattedDiff
     
     // Add all left lines up to the next unchanged block
     while (leftPos < leftEnd) {
-      alignedLeft.push(leftLines[leftPos++]);
+      const line = leftLines[leftPos++];
+      
+      // Check if this is an 'extra' line (only in original text)
+      // We identify extra lines by checking if the current position in left is ahead of right
+      // and if the line is not already marked as removed
+      if (!line.removed && leftPos > rightPos + 1 && !currentBlock) {
+        line.extraLine = true;
+      }
+      
+      alignedLeft.push(line);
     }
     
     // Add all right lines up to the next unchanged block
@@ -158,7 +167,7 @@ export function computeLineDiff(oldText: string, newText: string): FormattedDiff
   }
   
   // Second pass: perform word-level diffs for lines that appear to be similar
-  // Find matching lines by content
+  // And check for additional "extra lines" in the original text that should be highlighted
   for (let i = 0; i < alignedLeft.length && i < alignedRight.length; i++) {
     const leftLine = alignedLeft[i];
     const rightLine = alignedRight[i];
@@ -198,6 +207,18 @@ export function computeLineDiff(oldText: string, newText: string): FormattedDiff
         rightLine.added = false;
         leftLine.modified = true;
         rightLine.modified = true;
+      }
+    }
+  }
+  
+  // Mark any trailing lines in the original text as "extra"
+  let hasExtraLine = false;
+  for (let i = 0; i < alignedLeft.length; i++) {
+    if (!alignedLeft[i].removed && !alignedLeft[i].modified && !alignedLeft[i].spacer) {
+      // If there's a corresponding right-side spacer, this is an extra line
+      if (i < alignedRight.length && alignedRight[i].spacer) {
+        alignedLeft[i].extraLine = true;
+        hasExtraLine = true;
       }
     }
   }

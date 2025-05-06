@@ -1,4 +1,3 @@
-
 import type { Config } from "tailwindcss";
 
 const config: Config = {
@@ -62,6 +61,10 @@ const config: Config = {
           bg: "hsl(var(--diff-changed-bg))",
           text: "hsl(var(--diff-changed-text))",
         },
+        "diff-extra": {
+          bg: "hsl(var(--diff-extra-bg))",
+          text: "hsl(var(--diff-extra-text))",
+        },
       },
       borderRadius: {
         lg: "var(--radius)",
@@ -91,11 +94,13 @@ const config: Config = {
         "diff-deleted-bg": "hsl(var(--diff-removed-bg))",
         "diff-added-bg": "hsl(var(--diff-added-bg))",
         "diff-changed-bg": "hsl(var(--diff-changed-bg))",
+        "diff-extra-bg": "hsl(var(--diff-extra-bg))",
       },
       textColor: {
         "diff-deleted-text": "hsl(var(--diff-removed-text))",
         "diff-added-text": "hsl(var(--diff-added-text))",
         "diff-changed-text": "hsl(var(--diff-changed-text))",
+        "diff-extra-text": "hsl(var(--diff-extra-text))",
       },
     },
   },

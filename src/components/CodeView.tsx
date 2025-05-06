@@ -33,6 +33,7 @@ interface CodeViewProps {
   showLineNumbers?: boolean;
   title?: string;
   scrollRef?: React.RefObject<HTMLDivElement>;
+  position?: 'left' | 'right'; // To determine if it's the left or right view
 }
 
 const CodeView: React.FC<CodeViewProps> = ({ 
@@ -40,7 +41,8 @@ const CodeView: React.FC<CodeViewProps> = ({
   language, 
   lines, 
   showLineNumbers = true,
-  title
+  title,
+  position = 'left' // Default to left position
 }) => {
   const codeRef = useRef<HTMLPreElement>(null);
 
@@ -78,12 +80,19 @@ const CodeView: React.FC<CodeViewProps> = ({
                   return <div key={i} className="block h-5">&nbsp;</div>;
                 }
                 
-                // Determine line class - only highlight removed lines in left panel and added lines in right panel
+                // Determine line class based on position and line type
                 let className = "block line-highlight h-5";
-                if (line.added) className += " line-added";
-                else if (line.removed) className += " line-removed";
-                else if (line.modified) className += " line-modified";
-                // Don't add line-original class as per user's request
+                
+                if (position === 'left') {
+                  // Original text block highlighting
+                  if (line.removed) className += " line-removed";
+                  else if (line.modified) className += " line-modified";
+                  else if (line.extraLine) className += " line-extra-original"; // New class for extra lines
+                } else {
+                  // Modified text block highlighting
+                  if (line.added) className += " line-added";
+                  else if (line.modified) className += " line-modified";
+                }
                 
                 if (line.inlineChanges) {
                   return (

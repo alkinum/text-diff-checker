@@ -97,6 +97,7 @@ const DualCodeView: React.FC<DualCodeViewProps> = ({
               language={language} 
               lines={diff.left}
               title="Original"
+              position="left"
             />
           </div>
           <DiffMinimap 
@@ -116,6 +117,7 @@ const DualCodeView: React.FC<DualCodeViewProps> = ({
               language={language} 
               lines={diff.right}
               title="Modified"
+              position="right"
             />
           </div>
           <DiffMinimap 
