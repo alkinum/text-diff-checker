@@ -15,6 +15,11 @@ export interface FormattedDiff {
 
 export interface DiffResultWithLineNumbers extends DiffResult {
   lineNumber: number;
+  inlineChanges?: {
+    value: string;
+    added?: boolean;
+    removed?: boolean;
+  }[];
 }
 
 // Function to compute line-by-line differences
@@ -26,6 +31,10 @@ export function computeLineDiff(oldText: string, newText: string): FormattedDiff
   
   const leftLines: DiffResultWithLineNumbers[] = [];
   const rightLines: DiffResultWithLineNumbers[] = [];
+  
+  // First pass: analyze which lines changed but have direct counterparts
+  // Map of left line index to right line index for matching lines
+  const matchingLines = new Map<number, number>();
   
   differences.forEach((part) => {
     const lines = part.value.split('\n');
@@ -47,11 +56,56 @@ export function computeLineDiff(oldText: string, newText: string): FormattedDiff
     } else {
       // Unchanged lines appear in both sides
       lines.forEach(line => {
+        const leftIdx = leftLines.length;
+        const rightIdx = rightLines.length;
+        
         leftLines.push({ value: line, lineNumber: leftLineNumber++ });
         rightLines.push({ value: line, lineNumber: rightLineNumber++ });
+        
+        matchingLines.set(leftIdx, rightIdx);
       });
     }
   });
+  
+  // Second pass: perform word-level diffs for lines that have counterparts
+  // where one is added and one is removed
+  if (leftLines.length === rightLines.length) {
+    for (let i = 0; i < leftLines.length; i++) {
+      const leftLine = leftLines[i];
+      const rightLine = rightLines[i];
+      
+      // If one line is added and one is removed, they might be modified versions of each other
+      if ((leftLine.removed && rightLine.added) || 
+          (!leftLine.removed && !rightLine.added && leftLine.value !== rightLine.value)) {
+        const wordDiffs = diffWords(leftLine.value, rightLine.value);
+        
+        // Process left line
+        const leftInlineChanges = wordDiffs.map(part => ({
+          value: part.value,
+          removed: part.removed,
+          added: part.added,
+        }));
+        
+        // Process right line
+        const rightInlineChanges = wordDiffs.map(part => ({
+          value: part.value,
+          removed: part.removed,
+          added: part.added,
+        }));
+        
+        leftLine.inlineChanges = leftInlineChanges;
+        rightLine.inlineChanges = rightInlineChanges;
+        
+        // Mark as changed rather than added/removed if they're just modifications
+        if (leftLine.removed && rightLine.added) {
+          leftLine.removed = false;
+          rightLine.added = false;
+          leftLine.modified = true;
+          rightLine.modified = true;
+        }
+      }
+    }
+  }
   
   return { left: leftLines, right: rightLines };
 }

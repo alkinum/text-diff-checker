@@ -111,16 +111,16 @@
   @apply bg-diff-added-bg text-diff-added-text border-l-2 border-green-500;
 }
 
-.line-changed {
-  @apply bg-diff-changed-bg text-diff-changed-text;
+.line-modified {
+  @apply bg-diff-changed-bg text-diff-changed-text border-l-2 border-blue-500;
 }
 
 .token-deleted {
-  @apply bg-red-100 dark:bg-red-900/30;
+  @apply bg-red-200/60 dark:bg-red-900/50 text-red-800 dark:text-red-200 rounded-sm px-0.5;
 }
 
 .token-added {
-  @apply bg-green-100 dark:bg-green-900/30;
+  @apply bg-green-200/60 dark:bg-green-900/50 text-green-800 dark:text-green-200 rounded-sm px-0.5;
 }
 
 /* Prism code highlighting styles */

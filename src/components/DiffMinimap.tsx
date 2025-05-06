@@ -53,13 +53,16 @@ const DiffMinimap: React.FC<DiffMinimapProps> = ({ lines, containerRef, position
 
   // Function to find groups of consecutive added/removed lines
   const findChangedLineGroups = () => {
-    const groups: { start: number, end: number, type: 'added' | 'removed' }[] = [];
-    let currentGroup: { start: number, end: number, type: 'added' | 'removed' } | null = null;
+    const groups: { start: number, end: number, type: 'added' | 'removed' | 'modified' }[] = [];
+    let currentGroup: { start: number, end: number, type: 'added' | 'removed' | 'modified' } | null = null;
     
     lines.forEach((line, index) => {
-      if (line.added || line.removed) {
-        const type = line.added ? 'added' : 'removed';
-        
+      let type: 'added' | 'removed' | 'modified' | null = null;
+      if (line.added) type = 'added';
+      else if (line.removed) type = 'removed';
+      else if (line.modified) type = 'modified';
+      
+      if (type) {
         if (!currentGroup) {
           currentGroup = { start: index, end: index, type };
         } else if (currentGroup.type === type) {
@@ -85,44 +88,50 @@ const DiffMinimap: React.FC<DiffMinimapProps> = ({ lines, containerRef, position
   const totalLines = lines.length;
 
   return (
-    <div className={`absolute ${position === 'right' ? 'right-0' : 'right-0'} top-0 h-full w-6 flex flex-col`}>
-      <div className="flex justify-center py-1">
-        <ArrowUp className="h-4 w-4 text-muted-foreground" />
-      </div>
-      
+    <div className={`absolute ${position === 'right' ? 'right-1' : 'right-1'} top-0 h-full w-2 flex flex-col`}>
       <div 
         ref={minimapRef}
-        className="flex-1 mx-1 bg-muted/20 rounded relative cursor-pointer"
+        className="flex-1 bg-transparent rounded-sm relative cursor-pointer my-2"
         onClick={handleMinimapClick}
       >
         {changedGroups.map((group, i) => {
           const top = (group.start / totalLines) * 100;
           const height = ((group.end - group.start + 1) / totalLines) * 100;
-          const colorClass = group.type === 'added' ? 'bg-green-500/70' : 'bg-red-500/70';
+          let colorClass = '';
+          
+          switch (group.type) {
+            case 'added':
+              colorClass = 'bg-green-500';
+              break;
+            case 'removed':
+              colorClass = 'bg-red-500';
+              break;
+            case 'modified':
+              colorClass = position === 'left' ? 'bg-red-400' : 'bg-green-400';
+              break;
+          }
           
           return (
             <div 
               key={i}
-              className={`absolute ${colorClass} w-full`}
+              className={`absolute ${colorClass} w-full rounded-sm`}
               style={{
                 top: `${top}%`,
-                height: `${Math.max(1, height)}%`
+                height: `${Math.max(1, height)}%`,
+                opacity: 0.8
               }}
             />
           );
         })}
         
         <div 
-          className="absolute bg-primary/30 border border-primary/50 w-full rounded"
+          className="absolute bg-gray-500/30 w-full rounded-sm"
           style={{
             top: viewportPosition.top,
-            height: Math.max(10, viewportPosition.height)
+            height: Math.max(10, viewportPosition.height),
+            opacity: 0.8
           }}
         />
-      </div>
-      
-      <div className="flex justify-center py-1">
-        <ArrowDown className="h-4 w-4 text-muted-foreground" />
       </div>
     </div>
   );

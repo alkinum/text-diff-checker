@@ -73,9 +73,36 @@ const CodeView: React.FC<CodeViewProps> = ({
           <pre className="p-4 overflow-visible flex-1 m-0">
             <code className={`language-${language}`}>
               {lines.map((line, i) => {
-                let className = "line-highlight block";
+                let className = "block line-highlight";
                 if (line.added) className += " line-added";
                 if (line.removed) className += " line-removed";
+                if (line.modified) className += " line-modified";
+                
+                if (line.inlineChanges) {
+                  return (
+                    <div key={i} className={className}>
+                      {line.inlineChanges.map((part, j) => {
+                        let spanClass = "";
+                        if (part.added) spanClass += " token-added";
+                        if (part.removed) spanClass += " token-deleted";
+                        
+                        return (
+                          <span 
+                            key={j} 
+                            className={spanClass}
+                            dangerouslySetInnerHTML={{ 
+                              __html: Prism.highlight(
+                                part.value || " ", 
+                                Prism.languages[language] || Prism.languages.plaintext, 
+                                language
+                              )
+                            }}
+                          />
+                        );
+                      })}
+                    </div>
+                  );
+                }
                 
                 return (
                   <div key={i} className={className}>

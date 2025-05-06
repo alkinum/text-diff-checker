@@ -2,8 +2,6 @@
 import React, { useRef, useEffect } from 'react';
 import CodeView from '@/components/CodeView';
 import { type FormattedDiff } from '@/utils/diffUtils';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { ArrowUp, ArrowDown } from 'lucide-react';
 import DiffMinimap from '@/components/DiffMinimap';
 
 interface DualCodeViewProps {
@@ -23,24 +21,54 @@ const DualCodeView: React.FC<DualCodeViewProps> = ({
 }) => {
   const leftScrollRef = useRef<HTMLDivElement>(null);
   const rightScrollRef = useRef<HTMLDivElement>(null);
-
-  const handleScroll = (source: 'left' | 'right', event: React.UIEvent<HTMLDivElement>) => {
-    const sourceElement = event.currentTarget;
-    const targetElement = source === 'left' ? rightScrollRef.current : leftScrollRef.current;
+  
+  // Set up scroll synchronization
+  useEffect(() => {
+    const leftElement = leftScrollRef.current;
+    const rightElement = rightScrollRef.current;
     
-    if (targetElement && sourceElement !== targetElement) {
-      targetElement.scrollTop = sourceElement.scrollTop;
-      targetElement.scrollLeft = sourceElement.scrollLeft;
-    }
-  };
+    if (!leftElement || !rightElement) return;
+    
+    let isLeftScrolling = false;
+    let isRightScrolling = false;
+    
+    const handleLeftScroll = () => {
+      if (!isRightScrolling && leftElement && rightElement) {
+        isLeftScrolling = true;
+        rightElement.scrollTop = leftElement.scrollTop;
+        rightElement.scrollLeft = leftElement.scrollLeft;
+        setTimeout(() => {
+          isLeftScrolling = false;
+        }, 50);
+      }
+    };
+    
+    const handleRightScroll = () => {
+      if (!isLeftScrolling && leftElement && rightElement) {
+        isRightScrolling = true;
+        leftElement.scrollTop = rightElement.scrollTop;
+        leftElement.scrollLeft = rightElement.scrollLeft;
+        setTimeout(() => {
+          isRightScrolling = false;
+        }, 50);
+      }
+    };
+    
+    leftElement.addEventListener('scroll', handleLeftScroll);
+    rightElement.addEventListener('scroll', handleRightScroll);
+    
+    return () => {
+      leftElement.removeEventListener('scroll', handleLeftScroll);
+      rightElement.removeEventListener('scroll', handleRightScroll);
+    };
+  }, []);
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-0 h-[600px] bg-background relative">
-      <div className="h-full relative">
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-0 h-[600px] bg-background">
+      <div className="h-full relative border-r">
         <div 
           ref={leftScrollRef} 
           className="h-full overflow-auto"
-          onScroll={(e) => handleScroll('left', e)}
         >
           <CodeView 
             content={leftContent} 
@@ -60,7 +88,6 @@ const DualCodeView: React.FC<DualCodeViewProps> = ({
         <div 
           ref={rightScrollRef} 
           className="h-full overflow-auto"
-          onScroll={(e) => handleScroll('right', e)}
         >
           <CodeView 
             content={rightContent} 
