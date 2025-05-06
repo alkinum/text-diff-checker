@@ -1,3 +1,4 @@
+
 import { diffLines, diffWords } from 'diff';
 
 // Types for our diff functions
@@ -15,6 +16,7 @@ export interface FormattedDiff {
 
 export interface DiffResultWithLineNumbers extends DiffResult {
   lineNumber: number;
+  modified?: boolean; // Add the missing property
   inlineChanges?: {
     value: string;
     added?: boolean;
