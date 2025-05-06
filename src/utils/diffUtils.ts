@@ -1,3 +1,4 @@
+
 import { diffLines, diffWords } from 'diff';
 
 // Types for our diff functions
@@ -36,8 +37,8 @@ export function computeLineDiff(oldText: string, newText: string): FormattedDiff
   
   // First, analyze the raw diff to determine mapping of unchanged blocks
   const unchangedBlocks: { leftStart: number, leftEnd: number, rightStart: number, rightEnd: number }[] = [];
-  let leftIdx = 0;
-  let rightIdx = 0;
+  let leftIdxAnalysis = 0;
+  let rightIdxAnalysis = 0;
   
   differences.forEach(part => {
     const lines = part.value.split('\n');
@@ -51,20 +52,20 @@ export function computeLineDiff(oldText: string, newText: string): FormattedDiff
     if (!part.added && !part.removed) {
       // This is an unchanged block
       unchangedBlocks.push({
-        leftStart: leftIdx,
-        leftEnd: leftIdx + lineCount - 1,
-        rightStart: rightIdx,
-        rightEnd: rightIdx + lineCount - 1
+        leftStart: leftIdxAnalysis,
+        leftEnd: leftIdxAnalysis + lineCount - 1,
+        rightStart: rightIdxAnalysis,
+        rightEnd: rightIdxAnalysis + lineCount - 1
       });
     }
     
-    if (!part.added) leftIdx += lineCount;
-    if (!part.removed) rightIdx += lineCount;
+    if (!part.added) leftIdxAnalysis += lineCount;
+    if (!part.removed) rightIdxAnalysis += lineCount;
   });
   
   // Process the raw diff to create aligned lines
-  let leftIdx = 0;
-  let rightIdx = 0;
+  let leftIdxProcess = 0;
+  let rightIdxProcess = 0;
   
   differences.forEach(part => {
     const lines = part.value.split('\n');
