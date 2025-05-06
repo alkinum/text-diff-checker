@@ -40,8 +40,7 @@ const CodeView: React.FC<CodeViewProps> = ({
   language, 
   lines, 
   showLineNumbers = true,
-  title,
-  scrollRef
+  title
 }) => {
   const codeRef = useRef<HTMLPreElement>(null);
 
@@ -52,13 +51,6 @@ const CodeView: React.FC<CodeViewProps> = ({
     }
   }, [content, language]);
 
-  // Handle scrolling to sync with other code view
-  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
-    if (scrollRef?.current && e.currentTarget !== scrollRef.current) {
-      scrollRef.current.scrollTop = e.currentTarget.scrollTop;
-    }
-  };
-
   // If we have line-by-line diff data
   if (lines && lines.length > 0) {
     return (
@@ -68,13 +60,9 @@ const CodeView: React.FC<CodeViewProps> = ({
             {title}
           </div>
         )}
-        <div 
-          className="flex flex-1 overflow-auto" 
-          ref={scrollRef}
-          onScroll={handleScroll}
-        >
+        <div className="flex flex-1 min-w-full">
           {showLineNumbers && (
-            <div className="text-right pr-4 py-4 bg-muted/30 text-muted-foreground select-none min-w-[3rem]">
+            <div className="text-right pr-4 py-4 bg-muted/30 text-muted-foreground select-none min-w-[3rem] sticky left-0 z-10">
               {lines.map((line, i) => (
                 <div key={i} className="text-xs leading-5">
                   {line.lineNumber}
@@ -82,7 +70,7 @@ const CodeView: React.FC<CodeViewProps> = ({
               ))}
             </div>
           )}
-          <pre className="p-4 overflow-auto flex-1 m-0">
+          <pre className="p-4 overflow-visible flex-1 m-0">
             <code className={`language-${language}`}>
               {lines.map((line, i) => {
                 let className = "line-highlight block";

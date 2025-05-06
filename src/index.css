@@ -100,7 +100,7 @@
 }
 
 .line-highlight {
-  @apply block w-full;
+  @apply block w-full min-w-fit whitespace-pre;
 }
 
 .line-deleted {
