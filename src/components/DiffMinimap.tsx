@@ -94,7 +94,7 @@ const DiffMinimap: React.FC<DiffMinimapProps> = ({ lines, containerRef, position
     <div className={`absolute ${position === 'right' ? 'right-1.5' : 'right-1.5'} top-12 bottom-2 w-1.5 flex flex-col`}>
       <div 
         ref={minimapRef}
-        className="flex-1 bg-slate-100 dark:bg-slate-800 rounded-full shadow-inner relative cursor-pointer"
+        className="flex-1 bg-slate-100 dark:bg-slate-800 rounded-full shadow-inner relative cursor-pointer overflow-hidden"
         onClick={handleMinimapClick}
       >
         {/* Show changed blocks in the minimap */}
@@ -105,16 +105,16 @@ const DiffMinimap: React.FC<DiffMinimapProps> = ({ lines, containerRef, position
           let colorClass = '';
           switch (group.type) {
             case 'added':
-              colorClass = position === 'left' ? '' : 'bg-green-500';
+              colorClass = position === 'left' ? '' : 'bg-green-500/80';
               break;
             case 'removed':
-              colorClass = position === 'left' ? 'bg-red-500' : '';
+              colorClass = position === 'left' ? 'bg-red-500/80' : '';
               break;
             case 'modified':
-              colorClass = position === 'left' ? 'bg-blue-500' : 'bg-blue-500';
+              colorClass = position === 'left' ? 'bg-blue-500/80' : 'bg-blue-500/80';
               break;
             case 'extra':
-              colorClass = position === 'left' ? 'bg-yellow-500' : '';
+              colorClass = position === 'left' ? 'bg-yellow-500/80' : '';
               break;
           }
           
@@ -123,7 +123,7 @@ const DiffMinimap: React.FC<DiffMinimapProps> = ({ lines, containerRef, position
           return (
             <div 
               key={i}
-              className={`absolute ${colorClass} w-full rounded-full`}
+              className={`absolute ${colorClass} w-full`}
               style={{
                 top: `${top}%`,
                 height: `${Math.max(2, height)}%`,
@@ -134,7 +134,7 @@ const DiffMinimap: React.FC<DiffMinimapProps> = ({ lines, containerRef, position
         
         {/* Current viewport indicator */}
         <div 
-          className="absolute bg-gray-400/60 dark:bg-gray-300/60 w-full rounded-full shadow-sm"
+          className="absolute bg-white/40 dark:bg-gray-300/40 w-full backdrop-blur-sm shadow-sm"
           style={{
             top: viewportPosition.top,
             height: Math.max(15, viewportPosition.height),

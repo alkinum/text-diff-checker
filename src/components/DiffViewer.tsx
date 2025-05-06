@@ -1,13 +1,11 @@
 
 import React, { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { FileDiff } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { computeLineDiff, detectLanguage, type FormattedDiff } from "@/utils/diffUtils";
-import CodeView from "@/components/CodeView";
 import DualCodeView from "@/components/DualCodeView";
 import FormatSelector from "@/components/FormatSelector";
 
@@ -15,8 +13,7 @@ const DiffViewer: React.FC = () => {
   const [leftText, setLeftText] = useState("");
   const [rightText, setRightText] = useState("");
   const [diff, setDiff] = useState<FormattedDiff | null>(null);
-  const [language, setLanguage] = useState("plaintext"); // Single language state
-  const [selectedView, setSelectedView] = useState<"input" | "diff">("input");
+  const [language, setLanguage] = useState("plaintext");
   const { toast } = useToast();
 
   // Detect language when text changes
@@ -40,7 +37,6 @@ const DiffViewer: React.FC = () => {
 
     const result = computeLineDiff(leftText, rightText);
     setDiff(result);
-    setSelectedView("diff");
   };
 
   // Function to clear inputs
@@ -48,12 +44,11 @@ const DiffViewer: React.FC = () => {
     setLeftText("");
     setRightText("");
     setDiff(null);
-    setSelectedView("input");
   };
 
   return (
     <div className="max-w-7xl mx-auto p-6 animate-fade-in">
-      <header className="mb-12 pt-6 pb-8 text-center">
+      <header className="mb-8 pt-6 pb-6 text-center">
         <div className="flex items-center justify-center gap-3 mb-4">
           <FileDiff className="h-10 w-10 text-primary" />
           <h1 className="text-4xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-primary to-blue-500">Text Diff Viewer</h1>
@@ -63,76 +58,66 @@ const DiffViewer: React.FC = () => {
         </p>
       </header>
 
-      <Tabs value={selectedView} onValueChange={(v) => setSelectedView(v as "input" | "diff")} className="space-y-6">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-          <TabsList className="w-full sm:w-auto">
-            <TabsTrigger value="input" className="flex-1 sm:flex-initial">Text Input</TabsTrigger>
-            <TabsTrigger value="diff" className="flex-1 sm:flex-initial">Diff View</TabsTrigger>
-          </TabsList>
-
-          <div className="flex gap-3 w-full sm:w-auto">
-            <Button variant="outline" onClick={handleClear} className="flex-1 sm:flex-initial">
-              Clear
-            </Button>
-            <Button onClick={handleCompare} className="flex-1 sm:flex-initial">Compare</Button>
-          </div>
-        </div>
-
-        <TabsContent value="input" className="space-y-6 mt-0">
-          <div className="grid md:grid-cols-2 gap-6">
-            <div className="space-y-2">
-              <div className="flex justify-between items-center">
-                <Label htmlFor="original" className="text-base">Original Text</Label>
-                <FormatSelector 
-                  selectedLanguage={language} 
-                  onLanguageChange={setLanguage}
-                />
-              </div>
-              <Textarea
-                id="original"
-                placeholder="Paste original text here..."
-                className="min-h-[300px] font-mono text-sm"
-                value={leftText}
-                onChange={(e) => setLeftText(e.target.value)}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <div className="flex justify-between items-center">
-                <Label htmlFor="modified" className="text-base">Modified Text</Label>
-                <FormatSelector 
-                  selectedLanguage={language} 
-                  onLanguageChange={setLanguage}
-                />
-              </div>
-              <Textarea
-                id="modified"
-                placeholder="Paste modified text here..."
-                className="min-h-[300px] font-mono text-sm"
-                value={rightText}
-                onChange={(e) => setRightText(e.target.value)}
-              />
-            </div>
-          </div>
-        </TabsContent>
-
-        <TabsContent value="diff" className="space-y-4 mt-0">
-          {diff ? (
+      <div className="space-y-6">
+        {/* Diff View (appears only when diff exists) */}
+        {diff && (
+          <div className="space-y-4 mb-6">
             <DualCodeView 
               leftContent={leftText}
               rightContent={rightText}
               diff={diff}
               language={language}
             />
-          ) : (
-            <div className="flex justify-center items-center min-h-[300px] bg-muted/30 rounded-lg">
-              <p className="text-muted-foreground">
-                Click "Compare" to see differences
-              </p>
+          </div>
+        )}
+
+        <div className="flex justify-between items-center mb-4">
+          <div className="text-lg font-medium">Text Input</div>
+          <div className="flex gap-3">
+            <Button variant="outline" onClick={handleClear}>
+              Clear
+            </Button>
+            <Button onClick={handleCompare}>Compare</Button>
+          </div>
+        </div>
+
+        {/* Text Input View */}
+        <div className="grid md:grid-cols-2 gap-6">
+          <div className="space-y-2">
+            <div className="flex justify-between items-center">
+              <Label htmlFor="original" className="text-base">Original Text</Label>
+              <FormatSelector 
+                selectedLanguage={language} 
+                onLanguageChange={setLanguage}
+              />
             </div>
-          )}
-        </TabsContent>
-      </Tabs>
+            <Textarea
+              id="original"
+              placeholder="Paste original text here..."
+              className="min-h-[300px] font-mono text-sm"
+              value={leftText}
+              onChange={(e) => setLeftText(e.target.value)}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <div className="flex justify-between items-center">
+              <Label htmlFor="modified" className="text-base">Modified Text</Label>
+              <FormatSelector 
+                selectedLanguage={language} 
+                onLanguageChange={setLanguage}
+              />
+            </div>
+            <Textarea
+              id="modified"
+              placeholder="Paste modified text here..."
+              className="min-h-[300px] font-mono text-sm"
+              value={rightText}
+              onChange={(e) => setRightText(e.target.value)}
+            />
+          </div>
+        </div>
+      </div>
     </div>
   );
 };
