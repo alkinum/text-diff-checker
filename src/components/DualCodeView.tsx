@@ -1,6 +1,5 @@
 
-import React from 'react';
-import { Card, CardContent } from '@/components/ui/card';
+import React, { useRef } from 'react';
 import CodeView from '@/components/CodeView';
 import { type FormattedDiff } from '@/utils/diffUtils';
 
@@ -19,29 +18,30 @@ const DualCodeView: React.FC<DualCodeViewProps> = ({
   leftLanguage,
   rightLanguage
 }) => {
+  const leftScrollRef = useRef<HTMLDivElement>(null);
+  const rightScrollRef = useRef<HTMLDivElement>(null);
+
   return (
-    <div className="grid md:grid-cols-2 gap-4">
-      <Card>
-        <CardContent className="pt-6 h-[600px] overflow-auto">
-          <CodeView 
-            content={leftContent} 
-            language={leftLanguage} 
-            lines={diff.left}
-            title="Original"
-          />
-        </CardContent>
-      </Card>
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-0 rounded-lg overflow-hidden border shadow-sm h-[600px] bg-background">
+      <div className="h-full border-r">
+        <CodeView 
+          content={leftContent} 
+          language={leftLanguage} 
+          lines={diff.left}
+          title="Original"
+          scrollRef={leftScrollRef}
+        />
+      </div>
       
-      <Card>
-        <CardContent className="pt-6 h-[600px] overflow-auto">
-          <CodeView 
-            content={rightContent} 
-            language={rightLanguage} 
-            lines={diff.right}
-            title="Modified"
-          />
-        </CardContent>
-      </Card>
+      <div className="h-full">
+        <CodeView 
+          content={rightContent} 
+          language={rightLanguage} 
+          lines={diff.right}
+          title="Modified"
+          scrollRef={rightScrollRef}
+        />
+      </div>
     </div>
   );
 };

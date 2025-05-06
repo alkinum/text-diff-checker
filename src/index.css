@@ -104,11 +104,11 @@
 }
 
 .line-deleted {
-  @apply bg-diff-deleted-bg text-diff-deleted-text;
+  @apply bg-diff-deleted-bg text-diff-deleted-text border-l-2 border-red-500;
 }
 
 .line-added {
-  @apply bg-diff-added-bg text-diff-added-text;
+  @apply bg-diff-added-bg text-diff-added-text border-l-2 border-green-500;
 }
 
 .line-changed {

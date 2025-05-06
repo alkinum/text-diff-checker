@@ -32,6 +32,7 @@ interface CodeViewProps {
   lines?: DiffResultWithLineNumbers[];
   showLineNumbers?: boolean;
   title?: string;
+  scrollRef?: React.RefObject<HTMLDivElement>;
 }
 
 const CodeView: React.FC<CodeViewProps> = ({ 
@@ -39,7 +40,8 @@ const CodeView: React.FC<CodeViewProps> = ({
   language, 
   lines, 
   showLineNumbers = true,
-  title
+  title,
+  scrollRef
 }) => {
   const codeRef = useRef<HTMLPreElement>(null);
 
@@ -50,16 +52,27 @@ const CodeView: React.FC<CodeViewProps> = ({
     }
   }, [content, language]);
 
+  // Handle scrolling to sync with other code view
+  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    if (scrollRef?.current && e.currentTarget !== scrollRef.current) {
+      scrollRef.current.scrollTop = e.currentTarget.scrollTop;
+    }
+  };
+
   // If we have line-by-line diff data
   if (lines && lines.length > 0) {
     return (
-      <div className="relative overflow-hidden rounded-md border bg-background">
+      <div className="h-full flex flex-col">
         {title && (
-          <div className="px-4 py-2 border-b font-medium text-sm sticky top-0 bg-card z-10">
+          <div className="px-4 py-3 font-medium text-sm bg-card border-b sticky top-0 z-10">
             {title}
           </div>
         )}
-        <div className="flex overflow-auto">
+        <div 
+          className="flex flex-1 overflow-auto" 
+          ref={scrollRef}
+          onScroll={handleScroll}
+        >
           {showLineNumbers && (
             <div className="text-right pr-4 py-4 bg-muted/30 text-muted-foreground select-none min-w-[3rem]">
               {lines.map((line, i) => (
@@ -69,17 +82,25 @@ const CodeView: React.FC<CodeViewProps> = ({
               ))}
             </div>
           )}
-          <pre className="p-4 overflow-auto flex-1">
-            <code>
+          <pre className="p-4 overflow-auto flex-1 m-0">
+            <code className={`language-${language}`}>
               {lines.map((line, i) => {
-                let className = "line-highlight";
+                let className = "line-highlight block";
                 if (line.added) className += " line-added";
                 if (line.removed) className += " line-removed";
                 
                 return (
-                  <span key={i} className={className}>
-                    {line.value || " "}&nbsp;
-                  </span>
+                  <div key={i} className={className}>
+                    <span 
+                      dangerouslySetInnerHTML={{ 
+                        __html: Prism.highlight(
+                          line.value || " ", 
+                          Prism.languages[language] || Prism.languages.plaintext, 
+                          language
+                        )
+                      }} 
+                    />
+                  </div>
                 );
               })}
             </code>
@@ -91,15 +112,17 @@ const CodeView: React.FC<CodeViewProps> = ({
 
   // Standard syntax highlighted view
   return (
-    <div className="relative overflow-hidden rounded-md border bg-background">
+    <div className="h-full flex flex-col">
       {title && (
-        <div className="px-4 py-2 border-b font-medium text-sm sticky top-0 bg-card">
+        <div className="px-4 py-3 font-medium text-sm bg-card border-b sticky top-0">
           {title}
         </div>
       )}
-      <pre ref={codeRef} className="language-plaintext">
-        <code className={`language-${language}`}>{content || " "}</code>
-      </pre>
+      <div className="flex-1 overflow-auto">
+        <pre ref={codeRef} className="p-4 m-0">
+          <code className={`language-${language}`}>{content || " "}</code>
+        </pre>
+      </div>
     </div>
   );
 };
