@@ -23,6 +23,9 @@ import 'prismjs/components/prism-xml-doc';
 import 'prismjs/components/prism-ini';
 import { type DiffResultWithLineNumbers } from '@/utils/diffUtils';
 
+// Load Prism CSS theme
+import 'prismjs/themes/prism.css';
+
 interface CodeViewProps {
   content: string;
   language: string;
