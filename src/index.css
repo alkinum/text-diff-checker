@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -123,8 +124,8 @@
     @apply block w-full min-w-fit whitespace-pre h-5;
   }
 
-  .line-deleted {
-    @apply bg-diff-deleted-bg text-diff-deleted-text border-l-2 border-red-500;
+  .line-removed {
+    @apply bg-diff-removed-bg text-diff-removed-text border-l-2 border-red-500;
   }
 
   .line-added {
@@ -137,6 +138,15 @@
   
   .line-extra-original {
     @apply bg-diff-extra-bg text-diff-extra-text border-l-2 border-yellow-500;
+  }
+  
+  /* Token-level highlighting for inline changes */
+  .token-removed {
+    @apply bg-diff-removed-bg text-diff-removed-text;
+  }
+  
+  .token-added {
+    @apply bg-diff-added-bg text-diff-added-text;
   }
 }
 

@@ -87,17 +87,18 @@ const CodeView: React.FC<CodeViewProps> = ({
                   // Original text block highlighting
                   if (line.removed) className += " line-removed";
                   else if (line.modified) className += " line-modified";
-                  else if (line.extraLine) className += " line-extra-original"; // New class for extra lines
+                  else if (line.extraLine) className += " line-extra-original";
                 } else {
                   // Modified text block highlighting
                   if (line.added) className += " line-added";
                   else if (line.modified) className += " line-modified";
                 }
                 
-                if (line.inlineChanges) {
-                  return (
-                    <div key={i} className={className}>
-                      {line.inlineChanges.map((part, j) => {
+                return (
+                  <div key={i} className={className}>
+                    {line.inlineChanges ? (
+                      // Render with inline changes
+                      line.inlineChanges.map((part, j) => {
                         let spanClass = "";
                         if (part.added) spanClass += " token-added";
                         if (part.removed) spanClass += " token-removed";
@@ -115,22 +116,19 @@ const CodeView: React.FC<CodeViewProps> = ({
                             }}
                           />
                         );
-                      })}
-                    </div>
-                  );
-                }
-                
-                return (
-                  <div key={i} className={className}>
-                    <span 
-                      dangerouslySetInnerHTML={{ 
-                        __html: Prism.highlight(
-                          line.value || " ", 
-                          Prism.languages[language] || Prism.languages.plaintext, 
-                          language
-                        )
-                      }} 
-                    />
+                      })
+                    ) : (
+                      // Render normal line
+                      <span 
+                        dangerouslySetInnerHTML={{ 
+                          __html: Prism.highlight(
+                            line.value || " ", 
+                            Prism.languages[language] || Prism.languages.plaintext, 
+                            language
+                          )
+                        }} 
+                      />
+                    )}
                   </div>
                 );
               })}
