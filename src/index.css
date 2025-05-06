@@ -121,7 +121,7 @@
 
 @layer components {
   .line-highlight {
-    @apply block w-full min-w-fit whitespace-pre h-5;
+    @apply block w-full min-w-fit whitespace-pre h-5 hover:bg-slate-100 dark:hover:bg-slate-800/50;
   }
 
   .line-removed {
@@ -142,11 +142,11 @@
   
   /* Token-level highlighting for inline changes */
   .token-removed {
-    @apply bg-diff-removed-bg text-diff-removed-text;
+    @apply bg-diff-removed-bg text-diff-removed-text rounded px-0.5;
   }
   
   .token-added {
-    @apply bg-diff-added-bg text-diff-added-text;
+    @apply bg-diff-added-bg text-diff-added-text rounded px-0.5;
   }
 }
 

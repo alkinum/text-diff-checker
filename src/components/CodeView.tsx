@@ -58,13 +58,13 @@ const CodeView: React.FC<CodeViewProps> = ({
     return (
       <div className="h-full flex flex-col">
         {title && (
-          <div className="px-4 py-3 font-medium text-sm bg-card border-b sticky top-0 z-10">
+          <div className="px-4 py-2 font-medium text-sm bg-card border-b sticky top-0 z-10">
             {title}
           </div>
         )}
         <div className="flex flex-1 min-w-full overflow-hidden">
           {showLineNumbers && (
-            <div className="text-right pr-4 py-4 bg-muted/30 text-muted-foreground select-none min-w-[3rem] sticky left-0 z-10">
+            <div className="text-right pr-4 py-4 bg-muted/20 text-muted-foreground select-none min-w-[3rem] sticky left-0 z-10 border-r border-border/50">
               {lines.map((line, i) => (
                 <div key={i} className={`text-xs leading-5 h-5 ${line.spacer ? 'text-transparent' : ''}`}>
                   {line.spacer ? '\u00A0' : line.lineNumber}
@@ -143,7 +143,7 @@ const CodeView: React.FC<CodeViewProps> = ({
   return (
     <div className="h-full flex flex-col">
       {title && (
-        <div className="px-4 py-3 font-medium text-sm bg-card border-b sticky top-0">
+        <div className="px-4 py-2 font-medium text-sm bg-card border-b sticky top-0">
           {title}
         </div>
       )}

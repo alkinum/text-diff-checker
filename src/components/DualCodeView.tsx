@@ -3,6 +3,7 @@ import React, { useRef, useEffect } from 'react';
 import CodeView from '@/components/CodeView';
 import { type FormattedDiff } from '@/utils/diffUtils';
 import DiffMinimap from '@/components/DiffMinimap';
+import { Copy } from 'lucide-react';
 
 interface DualCodeViewProps {
   leftContent: string;
@@ -67,21 +68,43 @@ const DualCodeView: React.FC<DualCodeViewProps> = ({
   const leftLinesCount = diff.left.filter(line => !line.spacer).length;
   const rightLinesCount = diff.right.filter(line => !line.spacer).length;
 
+  const copyLeftContent = () => {
+    navigator.clipboard.writeText(leftContent);
+  };
+
+  const copyRightContent = () => {
+    navigator.clipboard.writeText(rightContent);
+  };
+
   return (
-    <div className="flex flex-col h-[600px] bg-background">
+    <div className="flex flex-col h-[600px] bg-background border rounded-md shadow-sm overflow-hidden">
       {/* Summary header */}
-      <div className="flex justify-between items-center text-sm p-2 border-b">
+      <div className="flex justify-between items-center text-sm p-2 border-b bg-slate-50 dark:bg-slate-900">
         <div className="flex items-center">
-          <span className="inline-flex items-center bg-diff-deleted-bg text-diff-deleted-text px-2 py-1 rounded mr-2">
-            <span className="mr-1">-</span> {removedCount} removals
+          <span className="inline-flex items-center bg-diff-removed-bg text-diff-removed-text px-3 py-1 rounded-full mr-2 font-medium">
+            <span className="mr-1">-</span> {removedCount} {removedCount === 1 ? 'removal' : 'removals'}
           </span>
-          <span className="text-muted-foreground">{leftLinesCount} lines</span>
+          <span className="text-muted-foreground">{leftLinesCount} {leftLinesCount === 1 ? 'line' : 'lines'}</span>
+          <button 
+            onClick={copyLeftContent} 
+            className="ml-2 p-1 text-muted-foreground hover:text-foreground flex items-center"
+            aria-label="Copy original content"
+          >
+            Copy <Copy className="h-3.5 w-3.5 ml-1" />
+          </button>
         </div>
         <div className="flex items-center">
-          <span className="inline-flex items-center bg-diff-added-bg text-diff-added-text px-2 py-1 rounded mr-2">
-            <span className="mr-1">+</span> {addedCount} additions
+          <span className="inline-flex items-center bg-diff-added-bg text-diff-added-text px-3 py-1 rounded-full mr-2 font-medium">
+            <span className="mr-1">+</span> {addedCount} {addedCount === 1 ? 'addition' : 'additions'}
           </span>
-          <span className="text-muted-foreground">{rightLinesCount} lines</span>
+          <span className="text-muted-foreground">{rightLinesCount} {rightLinesCount === 1 ? 'line' : 'lines'}</span>
+          <button 
+            onClick={copyRightContent} 
+            className="ml-2 p-1 text-muted-foreground hover:text-foreground flex items-center"
+            aria-label="Copy modified content"
+          >
+            Copy <Copy className="h-3.5 w-3.5 ml-1" />
+          </button>
         </div>
       </div>
       

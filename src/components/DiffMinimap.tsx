@@ -56,14 +56,15 @@ const DiffMinimap: React.FC<DiffMinimapProps> = ({ lines, containerRef, position
   
   // Function to find groups of consecutive added/removed/modified lines
   const findChangedLineGroups = () => {
-    const groups: { start: number, end: number, type: 'added' | 'removed' | 'modified' }[] = [];
-    let currentGroup: { start: number, end: number, type: 'added' | 'removed' | 'modified' } | null = null;
+    const groups: { start: number, end: number, type: 'added' | 'removed' | 'modified' | 'extra' }[] = [];
+    let currentGroup: { start: number, end: number, type: 'added' | 'removed' | 'modified' | 'extra' } | null = null;
     
     nonSpacerLines.forEach((line, index) => {
-      let type: 'added' | 'removed' | 'modified' | null = null;
+      let type: 'added' | 'removed' | 'modified' | 'extra' | null = null;
       if (line.added) type = 'added';
       else if (line.removed) type = 'removed';
       else if (line.modified) type = 'modified';
+      else if (line.extraLine) type = 'extra';
       
       if (type) {
         if (!currentGroup) {
@@ -90,10 +91,10 @@ const DiffMinimap: React.FC<DiffMinimapProps> = ({ lines, containerRef, position
   const changedGroups = findChangedLineGroups();
 
   return (
-    <div className={`absolute ${position === 'right' ? 'right-1' : 'right-1'} top-16 bottom-2 w-2 flex flex-col`}>
+    <div className={`absolute ${position === 'right' ? 'right-1.5' : 'right-1.5'} top-12 bottom-2 w-1.5 flex flex-col`}>
       <div 
         ref={minimapRef}
-        className="flex-1 bg-slate-100 dark:bg-slate-800 rounded-sm relative cursor-pointer"
+        className="flex-1 bg-slate-100 dark:bg-slate-800 rounded-full shadow-inner relative cursor-pointer"
         onClick={handleMinimapClick}
       >
         {/* Show changed blocks in the minimap */}
@@ -110,7 +111,10 @@ const DiffMinimap: React.FC<DiffMinimapProps> = ({ lines, containerRef, position
               colorClass = position === 'left' ? 'bg-red-500' : '';
               break;
             case 'modified':
-              colorClass = position === 'left' ? 'bg-red-400' : 'bg-green-400';
+              colorClass = position === 'left' ? 'bg-blue-500' : 'bg-blue-500';
+              break;
+            case 'extra':
+              colorClass = position === 'left' ? 'bg-yellow-500' : '';
               break;
           }
           
@@ -119,10 +123,10 @@ const DiffMinimap: React.FC<DiffMinimapProps> = ({ lines, containerRef, position
           return (
             <div 
               key={i}
-              className={`absolute ${colorClass} w-full`}
+              className={`absolute ${colorClass} w-full rounded-full`}
               style={{
                 top: `${top}%`,
-                height: `${Math.max(1, height)}%`,
+                height: `${Math.max(2, height)}%`,
               }}
             />
           );
@@ -130,10 +134,10 @@ const DiffMinimap: React.FC<DiffMinimapProps> = ({ lines, containerRef, position
         
         {/* Current viewport indicator */}
         <div 
-          className="absolute bg-gray-500/40 dark:bg-gray-400/40 w-full"
+          className="absolute bg-gray-400/60 dark:bg-gray-300/60 w-full rounded-full shadow-sm"
           style={{
             top: viewportPosition.top,
-            height: Math.max(10, viewportPosition.height),
+            height: Math.max(15, viewportPosition.height),
           }}
         />
       </div>
