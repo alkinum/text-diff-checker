@@ -115,7 +115,7 @@
 
 @layer components {
   .line-highlight {
-    @apply block w-full min-w-fit whitespace-pre;
+    @apply block w-full min-w-fit whitespace-pre h-5;
   }
 
   .line-deleted {

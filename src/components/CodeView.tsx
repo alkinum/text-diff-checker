@@ -64,8 +64,8 @@ const CodeView: React.FC<CodeViewProps> = ({
           {showLineNumbers && (
             <div className="text-right pr-4 py-4 bg-muted/30 text-muted-foreground select-none min-w-[3rem] sticky left-0 z-10">
               {lines.map((line, i) => (
-                <div key={i} className={`text-xs leading-5 ${line.spacer ? 'text-transparent' : ''}`}>
-                  {line.spacer ? '' : line.lineNumber}
+                <div key={i} className={`text-xs leading-5 h-5 ${line.spacer ? 'text-transparent' : ''}`}>
+                  {line.spacer ? '\u00A0' : line.lineNumber}
                 </div>
               ))}
             </div>
@@ -79,7 +79,7 @@ const CodeView: React.FC<CodeViewProps> = ({
                 }
                 
                 // Determine line class
-                let className = "block line-highlight";
+                let className = "block line-highlight h-5";
                 if (line.added) className += " line-added";
                 if (line.removed) className += " line-removed";
                 if (line.modified) className += " line-modified";
