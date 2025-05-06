@@ -113,28 +113,30 @@
   }
 }
 
-.line-highlight {
-  @apply block w-full min-w-fit whitespace-pre;
-}
+@layer components {
+  .line-highlight {
+    @apply block w-full min-w-fit whitespace-pre;
+  }
 
-.line-deleted {
-  @apply bg-diff-deleted-bg text-diff-deleted-text border-l-2 border-red-500;
-}
+  .line-deleted {
+    @apply bg-diff-deleted-bg text-diff-deleted-text border-l-2 border-red-500;
+  }
 
-.line-added {
-  @apply bg-diff-added-bg text-diff-added-text border-l-2 border-green-500;
-}
+  .line-added {
+    @apply bg-diff-added-bg text-diff-added-text border-l-2 border-green-500;
+  }
 
-.line-modified {
-  @apply bg-diff-changed-bg text-diff-changed-text border-l-2 border-blue-500;
-}
+  .line-modified {
+    @apply bg-diff-changed-bg text-diff-changed-text border-l-2 border-blue-500;
+  }
 
-.token-removed {
-  @apply bg-red-200/60 dark:bg-red-900/50 text-red-800 dark:text-red-200 rounded-sm px-0.5;
-}
+  .token-removed {
+    @apply bg-red-200/60 dark:bg-red-900/50 text-red-800 dark:text-red-200 rounded-sm px-0.5;
+  }
 
-.token-added {
-  @apply bg-green-200/60 dark:bg-green-900/50 text-green-800 dark:text-green-200 rounded-sm px-0.5;
+  .token-added {
+    @apply bg-green-200/60 dark:bg-green-900/50 text-green-800 dark:text-green-200 rounded-sm px-0.5;
+  }
 }
 
 /* Prism code highlighting styles */

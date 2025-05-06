@@ -87,6 +87,16 @@ const config: Config = {
         "accordion-up": "accordion-up 0.2s ease-out",
         "fade-in": "fade-in 0.3s ease-in-out",
       },
+      backgroundColor: {
+        "diff-deleted-bg": "hsl(var(--diff-removed-bg))",
+        "diff-added-bg": "hsl(var(--diff-added-bg))",
+        "diff-changed-bg": "hsl(var(--diff-changed-bg))",
+      },
+      textColor: {
+        "diff-deleted-text": "hsl(var(--diff-removed-text))",
+        "diff-added-text": "hsl(var(--diff-added-text))",
+        "diff-changed-text": "hsl(var(--diff-changed-text))",
+      },
     },
   },
   plugins: [require("tailwindcss-animate")],
