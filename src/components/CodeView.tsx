@@ -75,15 +75,15 @@ const CodeView: React.FC<CodeViewProps> = ({
               {lines.map((line, i) => {
                 // Handle spacer lines
                 if (line.spacer) {
-                  return <div key={i} className="block h-5"></div>;
+                  return <div key={i} className="block h-5">&nbsp;</div>;
                 }
                 
-                // Determine line class - default to original for left side
+                // Determine line class - only highlight removed lines in left panel and added lines in right panel
                 let className = "block line-highlight h-5";
                 if (line.added) className += " line-added";
                 else if (line.removed) className += " line-removed";
                 else if (line.modified) className += " line-modified";
-                else className += " line-original"; // Add highlighting to unchanged lines
+                // Don't add line-original class as per user's request
                 
                 if (line.inlineChanges) {
                   return (

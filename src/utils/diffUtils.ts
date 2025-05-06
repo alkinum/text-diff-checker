@@ -15,7 +15,7 @@ export interface FormattedDiff {
 
 export interface DiffResultWithLineNumbers extends DiffResult {
   lineNumber: number;
-  modified?: boolean; // Add the missing property
+  modified?: boolean; 
   inlineChanges?: {
     value: string;
     added?: boolean;
@@ -63,8 +63,8 @@ export function computeLineDiff(oldText: string, newText: string): FormattedDiff
   });
   
   // Process the raw diff to create aligned lines
-  leftIdx = 0;
-  rightIdx = 0;
+  let leftIdx = 0;
+  let rightIdx = 0;
   
   differences.forEach(part => {
     const lines = part.value.split('\n');
