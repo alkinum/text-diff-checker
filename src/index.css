@@ -130,6 +130,10 @@
     @apply bg-diff-changed-bg text-diff-changed-text border-l-2 border-blue-500;
   }
 
+  .line-original {
+    @apply bg-[#F1F0FB] dark:bg-gray-800/50 border-l-2 border-gray-400;
+  }
+
   .token-removed {
     @apply bg-red-200/60 dark:bg-red-900/50 text-red-800 dark:text-red-200 rounded-sm px-0.5;
   }

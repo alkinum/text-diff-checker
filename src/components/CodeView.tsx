@@ -78,11 +78,12 @@ const CodeView: React.FC<CodeViewProps> = ({
                   return <div key={i} className="block h-5"></div>;
                 }
                 
-                // Determine line class
+                // Determine line class - default to original for left side
                 let className = "block line-highlight h-5";
                 if (line.added) className += " line-added";
-                if (line.removed) className += " line-removed";
-                if (line.modified) className += " line-modified";
+                else if (line.removed) className += " line-removed";
+                else if (line.modified) className += " line-modified";
+                else className += " line-original"; // Add highlighting to unchanged lines
                 
                 if (line.inlineChanges) {
                   return (
