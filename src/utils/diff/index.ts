@@ -18,10 +18,68 @@ export function computeLineDiff(oldText: string, newText: string): FormattedDiff
 
   // Get the diff results
   const changes = diffLines(oldText, newText);
+
+  // First pass: identify adjacent removed/added pairs to mark them as modified instead
+  const processedChanges = [];
+  let i = 0;
+  
+  while (i < changes.length) {
+    const current = changes[i];
+    const next = i + 1 < changes.length ? changes[i + 1] : null;
+    
+    // If we have a removed line followed by an added line, we'll treat it as a modification
+    if (current.removed && next && next.added) {
+      // Create a modified change that combines both (will be handled specially)
+      processedChanges.push({
+        modified: true,
+        oldValue: current.value,
+        newValue: next.value
+      });
+      i += 2; // Skip the next change since we've processed it
+    } else {
+      // Keep the original change
+      processedChanges.push(current);
+      i++;
+    }
+  }
   
   // Process each change
-  for (const part of changes) {
-    if (part.added) {
+  for (const part of processedChanges) {
+    if (part.modified) {
+      // This is our special case for modifications
+      const oldLines = part.oldValue.split('\n');
+      const newLines = part.newValue.split('\n');
+      const maxLines = Math.max(
+        oldLines.length > 0 && oldLines[oldLines.length - 1] === '' ? oldLines.length - 1 : oldLines.length,
+        newLines.length > 0 && newLines[newLines.length - 1] === '' ? newLines.length - 1 : newLines.length
+      );
+      
+      for (let i = 0; i < maxLines; i++) {
+        const oldLine = i < oldLines.length ? oldLines[i] : '';
+        const newLine = i < newLines.length ? newLines[i] : '';
+        
+        // Skip empty trailing lines
+        if (i === oldLines.length - 1 && oldLine === '' && 
+            i === newLines.length - 1 && newLine === '') {
+          continue;
+        }
+        
+        // Add lines side by side with modification markers
+        leftLines.push({
+          value: i < oldLines.length && oldLines[i] !== '' ? oldLines[i] : '',
+          removed: true,
+          lineNumber: leftLineNumber++,
+          modified: true
+        });
+        
+        rightLines.push({
+          value: i < newLines.length && newLines[i] !== '' ? newLines[i] : '',
+          added: true,
+          lineNumber: rightLineNumber++,
+          modified: true
+        });
+      }
+    } else if (part.added) {
       // Added lines
       const lines = part.value.split('\n');
       for (let i = 0; i < lines.length; i++) {

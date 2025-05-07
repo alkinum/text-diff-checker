@@ -22,7 +22,9 @@ export function applyWordDiffs(leftLines: DiffResultWithLineNumbers[], rightLine
     }
     
     // Look for pairs of lines that should be compared for word diffs
-    if (leftLines[leftIdx].removed && rightLines[rightIdx].added) {
+    // This includes both explicit 'modified' lines and removed/added pairs
+    if ((leftLines[leftIdx].removed && rightLines[rightIdx].added) ||
+        (leftLines[leftIdx].modified && rightLines[rightIdx].modified)) {
       modifiedPairs.push([leftIdx, rightIdx]);
     }
     
@@ -38,79 +40,43 @@ export function applyWordDiffs(leftLines: DiffResultWithLineNumbers[], rightLine
     const leftText = leftLine.value;
     const rightText = rightLine.value;
     
-    // Find common substrings to highlight only the differences
-    highlightSubstringChanges(leftLine, rightLine, leftText, rightText);
+    // Use diffChars to get precise character differences
+    const charDiffs = diffChars(leftText, rightText);
+    
+    // Process the character diffs for the left side
+    leftLine.inlineChanges = [];
+    rightLine.inlineChanges = [];
+    
+    // Create inline changes based on char diffs
+    for (const part of charDiffs) {
+      if (part.added) {
+        // Added parts only appear in the right side
+        rightLine.inlineChanges.push({
+          value: part.value,
+          added: true,
+          removed: false
+        });
+      } else if (part.removed) {
+        // Removed parts only appear in the left side
+        leftLine.inlineChanges.push({
+          value: part.value,
+          removed: true,
+          added: false
+        });
+      } else {
+        // Common parts appear in both sides
+        leftLine.inlineChanges.push({
+          value: part.value,
+          removed: false,
+          added: false
+        });
+        
+        rightLine.inlineChanges.push({
+          value: part.value,
+          removed: false,
+          added: false
+        });
+      }
+    }
   }
-}
-
-// Function to find and highlight differences in substrings
-function highlightSubstringChanges(
-  leftLine: DiffResultWithLineNumbers, 
-  rightLine: DiffResultWithLineNumbers, 
-  leftText: string, 
-  rightText: string
-): void {
-  // Find common prefix and suffix
-  const commonPrefix = findCommonPrefix(leftText, rightText);
-  const commonSuffix = findCommonSuffix(
-    leftText.substring(commonPrefix.length),
-    rightText.substring(commonPrefix.length)
-  );
-  
-  // Calculate the middle sections (the different parts)
-  const leftMiddle = leftText.substring(
-    commonPrefix.length,
-    leftText.length - commonSuffix.length
-  );
-  
-  const rightMiddle = rightText.substring(
-    commonPrefix.length,
-    rightText.length - commonSuffix.length
-  );
-  
-  // Create inline changes for the left line
-  leftLine.inlineChanges = [];
-  if (commonPrefix) {
-    leftLine.inlineChanges.push({ value: commonPrefix, removed: false, added: false });
-  }
-  if (leftMiddle) {
-    leftLine.inlineChanges.push({ value: leftMiddle, removed: true, added: false });
-  }
-  if (commonSuffix) {
-    leftLine.inlineChanges.push({ value: commonSuffix, removed: false, added: false });
-  }
-  
-  // Create inline changes for the right line
-  rightLine.inlineChanges = [];
-  if (commonPrefix) {
-    rightLine.inlineChanges.push({ value: commonPrefix, removed: false, added: false });
-  }
-  if (rightMiddle) {
-    rightLine.inlineChanges.push({ value: rightMiddle, removed: false, added: true });
-  }
-  if (commonSuffix) {
-    rightLine.inlineChanges.push({ value: commonSuffix, removed: false, added: false });
-  }
-}
-
-// Helper function to find common prefix of two strings
-function findCommonPrefix(str1: string, str2: string): string {
-  let i = 0;
-  while (i < str1.length && i < str2.length && str1[i] === str2[i]) {
-    i++;
-  }
-  return str1.substring(0, i);
-}
-
-// Helper function to find common suffix of two strings
-function findCommonSuffix(str1: string, str2: string): string {
-  let i = 0;
-  while (
-    i < str1.length &&
-    i < str2.length &&
-    str1[str1.length - 1 - i] === str2[str2.length - 1 - i]
-  ) {
-    i++;
-  }
-  return i > 0 ? str1.substring(str1.length - i) : '';
 }
