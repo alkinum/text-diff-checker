@@ -100,8 +100,8 @@ const CodeView: React.FC<CodeViewProps> = ({
                       // Render with inline changes
                       line.inlineChanges.map((part, j) => {
                         let spanClass = "";
-                        if (part.added) spanClass += " token-added";
-                        if (part.removed) spanClass += " token-removed";
+                        if (position === 'left' && part.removed) spanClass += " token-removed";
+                        else if (position === 'right' && part.added) spanClass += " token-added";
                         
                         return (
                           <span 

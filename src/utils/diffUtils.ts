@@ -27,55 +27,36 @@ export interface DiffResultWithLineNumbers extends DiffResult {
 
 // Function to compute line-by-line differences with proper alignment
 export function computeLineDiff(oldText: string, newText: string): FormattedDiff {
+  // First we need to split the text into lines before passing to diffLines
+  const oldLines = oldText.split('\n');
+  const newLines = newText.split('\n');
+
+  // Remove empty lines at the end if they exist
+  if (oldLines[oldLines.length - 1] === '') oldLines.pop();
+  if (newLines[newLines.length - 1] === '') newLines.pop();
+  
+  // Calculate the diff between the two arrays of lines
   const differences = diffLines(oldText, newText);
   
+  // Initialize our result arrays
   const leftLines: DiffResultWithLineNumbers[] = [];
   const rightLines: DiffResultWithLineNumbers[] = [];
   
   let leftLineNumber = 1;
   let rightLineNumber = 1;
   
-  // First, analyze the raw diff to determine mapping of unchanged blocks
-  const unchangedBlocks: { leftStart: number, leftEnd: number, rightStart: number, rightEnd: number }[] = [];
-  let leftIdxAnalysis = 0;
-  let rightIdxAnalysis = 0;
-  
+  // First pass: Process the differences to create initial line arrays
   differences.forEach(part => {
+    // Split each part into lines, accounting for newlines
     const lines = part.value.split('\n');
+    
     // Remove the last element if it's an empty string (due to trailing newline)
     if (lines[lines.length - 1] === '') {
       lines.pop();
     }
-    
-    const lineCount = lines.length;
-    
-    if (!part.added && !part.removed) {
-      // This is an unchanged block
-      unchangedBlocks.push({
-        leftStart: leftIdxAnalysis,
-        leftEnd: leftIdxAnalysis + lineCount - 1,
-        rightStart: rightIdxAnalysis,
-        rightEnd: rightIdxAnalysis + lineCount - 1
-      });
-    }
-    
-    if (!part.added) leftIdxAnalysis += lineCount;
-    if (!part.removed) rightIdxAnalysis += lineCount;
-  });
-  
-  // Process the raw diff to create aligned lines
-  let leftIdxProcess = 0;
-  let rightIdxProcess = 0;
-  
-  differences.forEach(part => {
-    const lines = part.value.split('\n');
-    // Remove the last element if it's an empty string (due to trailing newline)
-    if (lines[lines.length - 1] === '') {
-      lines.pop();
-    }
-    
+
     if (part.added) {
-      // Added lines only appear in right side
+      // Added lines only appear in right side (new text)
       lines.forEach(line => {
         rightLines.push({ 
           value: line, 
@@ -84,7 +65,7 @@ export function computeLineDiff(oldText: string, newText: string): FormattedDiff
         });
       });
     } else if (part.removed) {
-      // Removed lines only appear in left side
+      // Removed lines only appear in left side (old text)
       lines.forEach(line => {
         leftLines.push({ 
           value: line, 
@@ -101,125 +82,116 @@ export function computeLineDiff(oldText: string, newText: string): FormattedDiff
     }
   });
   
-  // Align the lines by adding spacers
+  // Second pass: Match up the lines between left and right sides to ensure proper alignment
   const alignedLeft: DiffResultWithLineNumbers[] = [];
   const alignedRight: DiffResultWithLineNumbers[] = [];
   
+  // Find the max length between left and right arrays
+  const maxLength = Math.max(leftLines.length, rightLines.length);
+  
+  // Counters for positions in each array
   let leftPos = 0;
   let rightPos = 0;
   
-  // Process each unchanged block and the changes between them
-  for (let i = 0; i <= unchangedBlocks.length; i++) {
-    // Handle changes before this unchanged block
-    const currentBlock = unchangedBlocks[i];
-    const leftEnd = currentBlock ? currentBlock.leftStart : leftLines.length;
-    const rightEnd = currentBlock ? currentBlock.rightStart : rightLines.length;
+  // Process both arrays simultaneously
+  while (leftPos < leftLines.length || rightPos < rightLines.length) {
+    const leftLine = leftPos < leftLines.length ? leftLines[leftPos] : null;
+    const rightLine = rightPos < rightLines.length ? rightLines[rightPos] : null;
     
-    // Add all left lines up to the next unchanged block
-    while (leftPos < leftEnd) {
-      const line = leftLines[leftPos++];
-      
-      // Check if this is an 'extra' line (only in original text)
-      // We identify extra lines by checking if the current position in left is ahead of right
-      // and if the line is not already marked as removed
-      if (!line.removed && leftPos > rightPos + 1 && !currentBlock) {
-        line.extraLine = true;
+    // Case 1: Both sides have a line
+    if (leftLine && rightLine) {
+      // 1a: If neither side is marked as added or removed, they're supposed to match
+      if (!leftLine.added && !leftLine.removed && !rightLine.added && !rightLine.removed) {
+        alignedLeft.push(leftLine);
+        alignedRight.push(rightLine);
+        leftPos++;
+        rightPos++;
       }
-      
-      alignedLeft.push(line);
-    }
-    
-    // Add all right lines up to the next unchanged block
-    while (rightPos < rightEnd) {
-      alignedRight.push(rightLines[rightPos++]);
-    }
-    
-    // Balance the lines by adding spacers
-    const leftAddedCount = alignedLeft.length - alignedRight.length;
-    if (leftAddedCount > 0) {
-      // Add spacers to right side
-      for (let j = 0; j < leftAddedCount; j++) {
+      // 1b: Left line is removed, need to add a spacer on the right
+      else if (leftLine.removed) {
+        alignedLeft.push(leftLine);
         alignedRight.push({
           value: '',
-          lineNumber: -1, // No line number for spacers
+          lineNumber: -1,
           spacer: true
         });
+        leftPos++;
       }
-    } else if (leftAddedCount < 0) {
-      // Add spacers to left side
-      for (let j = 0; j < Math.abs(leftAddedCount); j++) {
+      // 1c: Right line is added, need to add a spacer on the left
+      else if (rightLine.added) {
         alignedLeft.push({
           value: '',
-          lineNumber: -1, // No line number for spacers
+          lineNumber: -1,
           spacer: true
         });
+        alignedRight.push(rightLine);
+        rightPos++;
       }
     }
-    
-    // If this is the last iteration, break
-    if (!currentBlock) break;
-    
-    // Add the unchanged block
-    for (let j = 0; j <= currentBlock.leftEnd - currentBlock.leftStart; j++) {
-      alignedLeft.push(leftLines[leftPos++]);
-      alignedRight.push(rightLines[rightPos++]);
+    // Case 2: Only left side has a line
+    else if (leftLine) {
+      alignedLeft.push(leftLine);
+      alignedRight.push({
+        value: '',
+        lineNumber: -1,
+        spacer: true
+      });
+      leftPos++;
+    }
+    // Case 3: Only right side has a line
+    else if (rightLine) {
+      alignedLeft.push({
+        value: '',
+        lineNumber: -1,
+        spacer: true
+      });
+      alignedRight.push(rightLine);
+      rightPos++;
     }
   }
   
-  // Second pass: perform word-level diffs for lines that appear to be similar
-  // And check for additional "extra lines" in the original text that should be highlighted
-  for (let i = 0; i < alignedLeft.length && i < alignedRight.length; i++) {
+  // Third pass: Perform word-level diffs for modified lines
+  // Compare each aligned line to detect modifications
+  for (let i = 0; i < alignedLeft.length; i++) {
     const leftLine = alignedLeft[i];
     const rightLine = alignedRight[i];
     
-    // Skip spacers and lines that are strictly added/removed
-    if (leftLine.spacer || rightLine.spacer || 
-        (leftLine.removed && rightLine.added) ||
-        (!leftLine.value && !rightLine.value)) {
+    // Skip spacers and obvious add/remove pairs
+    if (leftLine.spacer || rightLine.spacer) {
       continue;
     }
     
-    // If one line is normal and the other is not, or they have different values,
-    // they might be modified versions of each other
-    if ((!leftLine.removed && !rightLine.added && leftLine.value !== rightLine.value) ||
-        (leftLine.value && rightLine.value && !leftLine.spacer && !rightLine.spacer)) {
+    // If lines are different without being marked as added/removed
+    if (leftLine.value !== rightLine.value && 
+        !leftLine.removed && !rightLine.added) {
       
+      // Do word-level diff for more detailed highlighting
       const wordDiffs = diffWords(leftLine.value, rightLine.value);
       
-      // Process left line
+      // Apply word diffs to left line
       leftLine.inlineChanges = wordDiffs.map(part => ({
         value: part.value,
         removed: part.removed,
         added: part.added,
       }));
       
-      // Process right line
+      // Apply word diffs to right line
       rightLine.inlineChanges = wordDiffs.map(part => ({
         value: part.value,
         removed: part.removed,
         added: part.added,
       }));
       
-      // Mark as modified rather than added/removed if they have inline changes
-      if (leftLine.inlineChanges.some(change => change.removed) || 
-          rightLine.inlineChanges.some(change => change.added)) {
-        leftLine.removed = false;
-        rightLine.added = false;
+      // Mark both lines as modified if there are actual differences
+      if (wordDiffs.some(part => part.added || part.removed)) {
         leftLine.modified = true;
         rightLine.modified = true;
       }
     }
-  }
-  
-  // Mark any trailing lines in the original text as "extra"
-  let hasExtraLine = false;
-  for (let i = 0; i < alignedLeft.length; i++) {
-    if (!alignedLeft[i].removed && !alignedLeft[i].modified && !alignedLeft[i].spacer) {
-      // If there's a corresponding right-side spacer, this is an extra line
-      if (i < alignedRight.length && alignedRight[i].spacer) {
-        alignedLeft[i].extraLine = true;
-        hasExtraLine = true;
-      }
+    
+    // Mark original lines that don't have a match on the right as "extra"
+    if (!leftLine.removed && !leftLine.modified && rightLine.spacer) {
+      leftLine.extraLine = true;
     }
   }
   
