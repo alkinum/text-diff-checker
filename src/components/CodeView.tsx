@@ -98,11 +98,24 @@ const CodeView: React.FC<CodeViewProps> = ({
                   return (
                     <div key={i} className={className}>
                       {line.inlineChanges.map((part, j) => {
-                        // Only add highlighting class to actually changed parts
+                        // Skip rendering empty parts
+                        if (!part.value) return null;
+                        
+                        // Add highlighting only to changed parts
                         let spanClass = "";
-                        if ((position === 'left' && part.removed) || 
-                            (position === 'right' && part.added)) {
-                          spanClass = position === 'left' ? "token-removed" : "token-added";
+                        
+                        // For left side (original)
+                        if (position === 'left' && part.removed) {
+                          spanClass = "token-removed";
+                        }
+                        // For right side (modified)
+                        else if (position === 'right' && part.added) {
+                          spanClass = "token-added";
+                        }
+                        // Skip parts that don't apply to this side
+                        else if ((position === 'left' && part.added) || 
+                                 (position === 'right' && part.removed)) {
+                          return null;
                         }
                         
                         return (
