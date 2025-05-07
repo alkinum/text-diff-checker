@@ -35,6 +35,7 @@ const DiffViewer: React.FC = () => {
       return;
     }
 
+    // Ensure we're using the current input values when comparing
     const result = computeLineDiff(leftText, rightText);
     setDiff(result);
   };

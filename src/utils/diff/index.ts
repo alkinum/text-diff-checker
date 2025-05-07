@@ -16,71 +16,80 @@ export function computeLineDiff(oldText: string, newText: string): FormattedDiff
   let leftLineNumber = 1;
   let rightLineNumber = 1;
 
-  // Process each line with smarter alignment
-  for (let i = 0; i < Math.max(oldLines.length, newLines.length); i++) {
-    const oldLine = i < oldLines.length ? oldLines[i] : null;
-    const newLine = i < newLines.length ? newLines[i] : null;
-    
-    // Case 1: Line exists in both old and new
-    if (oldLine !== null && newLine !== null) {
-      // Check if lines are identical
-      if (oldLine === newLine) {
+  // Get the diff results
+  const changes = diffLines(oldText, newText);
+  let oldLineIndex = 0;
+  let newLineIndex = 0;
+  
+  // Process each change
+  for (const part of changes) {
+    if (part.added) {
+      // Added lines
+      const lines = part.value.split('\n');
+      for (let i = 0; i < lines.length; i++) {
+        // Skip the last element if it's empty (due to trailing newline)
+        if (i === lines.length - 1 && lines[i] === '') continue;
+        
+        // Add a spacer in left side
+        leftLines.push({
+          value: '',
+          lineNumber: -1,
+          spacer: true
+        });
+        
+        // Add the line on right side
+        rightLines.push({
+          value: lines[i],
+          added: true,
+          lineNumber: rightLineNumber++
+        });
+        
+        newLineIndex++;
+      }
+    } else if (part.removed) {
+      // Removed lines
+      const lines = part.value.split('\n');
+      for (let i = 0; i < lines.length; i++) {
+        // Skip the last element if it's empty (due to trailing newline)
+        if (i === lines.length - 1 && lines[i] === '') continue;
+        
+        // Add the line on left side
+        leftLines.push({
+          value: lines[i],
+          removed: true,
+          lineNumber: leftLineNumber++
+        });
+        
+        // Add a spacer in right side
+        rightLines.push({
+          value: '',
+          lineNumber: -1,
+          spacer: true
+        });
+        
+        oldLineIndex++;
+      }
+    } else {
+      // Unchanged lines
+      const lines = part.value.split('\n');
+      for (let i = 0; i < lines.length; i++) {
+        // Skip the last element if it's empty (due to trailing newline)
+        if (i === lines.length - 1 && lines[i] === '') continue;
+        
         // Add unchanged line to both sides
         leftLines.push({
-          value: oldLine,
+          value: lines[i],
           lineNumber: leftLineNumber++
         });
         
         rightLines.push({
-          value: newLine,
+          value: lines[i],
           lineNumber: rightLineNumber++
         });
-      } else {
-        // Lines are different but at same position - mark as modified
-        leftLines.push({
-          value: oldLine,
-          lineNumber: leftLineNumber++,
-          removed: true  // Mark as removed in left side as per requirement
-        });
         
-        rightLines.push({
-          value: newLine,
-          lineNumber: rightLineNumber++,
-          added: true    // Mark as added in right side as per requirement
-        });
+        oldLineIndex++;
+        newLineIndex++;
       }
-    }
-    // Case 2: Line exists only in old text
-    else if (oldLine !== null) {
-      // Line was removed
-      leftLines.push({
-        value: oldLine,
-        removed: true,
-        lineNumber: leftLineNumber++
-      });
-      
-      // Add a spacer in right side
-      rightLines.push({
-        value: '',
-        lineNumber: -1,
-        spacer: true
-      });
-    }
-    // Case 3: Line exists only in new text
-    else if (newLine !== null) {
-      // Add a spacer in left side
-      leftLines.push({
-        value: '',
-        lineNumber: -1,
-        spacer: true
-      });
-      
-      // Line was added
-      rightLines.push({
-        value: newLine,
-        added: true,
-        lineNumber: rightLineNumber++
-      });
     }
   }
   

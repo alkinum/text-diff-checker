@@ -27,8 +27,13 @@ export function applyWordDiffs(leftLines: DiffResultWithLineNumbers[], rightLine
     if (leftLine.removed && rightLine.added && 
         // Ensure we're looking at lines in the same position
         leftIndex === rightIndex) {
-      // Perform character-level diff
-      const charDiffs = diffChars(leftLine.value, rightLine.value);
+      
+      // Get the raw text from the lines for accurate diffing
+      const leftText = leftLine.value;
+      const rightText = rightLine.value;
+      
+      // Perform character-level diff using the actual line content
+      const charDiffs = diffChars(leftText, rightText);
       
       // Apply char diffs to left line (removed)
       leftLine.inlineChanges = charDiffs.map(part => ({
