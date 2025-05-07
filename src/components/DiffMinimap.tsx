@@ -1,6 +1,5 @@
-
 import React, { useEffect, useRef, useState } from 'react';
-import { type DiffResultWithLineNumbers } from '@/utils/diffUtils';
+import { type DiffResultWithLineNumbers } from '@/utils/diff/types';
 
 interface DiffMinimapProps {
   lines: DiffResultWithLineNumbers[];

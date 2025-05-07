@@ -1,7 +1,7 @@
 
 import React, { useRef, useEffect } from 'react';
 import CodeView from '@/components/CodeView';
-import { type FormattedDiff } from '@/utils/diffUtils';
+import { type FormattedDiff } from '@/utils/diff';
 import DiffMinimap from '@/components/DiffMinimap';
 import { Copy } from 'lucide-react';
 

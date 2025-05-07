@@ -1,4 +1,3 @@
-
 import React, { useEffect, useRef } from 'react';
 import Prism from 'prismjs';
 import 'prismjs/components/prism-markup';
@@ -21,7 +20,7 @@ import 'prismjs/components/prism-rust';
 import 'prismjs/components/prism-sql';
 import 'prismjs/components/prism-xml-doc';
 import 'prismjs/components/prism-ini';
-import { type DiffResultWithLineNumbers } from '@/utils/diffUtils';
+import { type DiffResultWithLineNumbers } from '@/utils/diff/types';
 
 // Load Prism CSS theme
 import 'prismjs/themes/prism.css';
