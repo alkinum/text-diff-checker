@@ -18,8 +18,6 @@ export function computeLineDiff(oldText: string, newText: string): FormattedDiff
 
   // Get the diff results
   const changes = diffLines(oldText, newText);
-  let oldLineIndex = 0;
-  let newLineIndex = 0;
   
   // Process each change
   for (const part of changes) {
@@ -43,8 +41,6 @@ export function computeLineDiff(oldText: string, newText: string): FormattedDiff
           added: true,
           lineNumber: rightLineNumber++
         });
-        
-        newLineIndex++;
       }
     } else if (part.removed) {
       // Removed lines
@@ -66,8 +62,6 @@ export function computeLineDiff(oldText: string, newText: string): FormattedDiff
           lineNumber: -1,
           spacer: true
         });
-        
-        oldLineIndex++;
       }
     } else {
       // Unchanged lines
@@ -86,9 +80,6 @@ export function computeLineDiff(oldText: string, newText: string): FormattedDiff
           value: lines[i],
           lineNumber: rightLineNumber++
         });
-        
-        oldLineIndex++;
-        newLineIndex++;
       }
     }
   }

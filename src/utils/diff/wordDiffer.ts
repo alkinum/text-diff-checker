@@ -24,10 +24,7 @@ export function applyWordDiffs(leftLines: DiffResultWithLineNumbers[], rightLine
 
     // Look for pairs of lines that should be compared for word diffs
     // Either both are at the same position, or marked as added/removed
-    if (leftLine.removed && rightLine.added && 
-        // Ensure we're looking at lines in the same position
-        leftIndex === rightIndex) {
-      
+    if (leftLine.removed && rightLine.added) {
       // Get the raw text from the lines for accurate diffing
       const leftText = leftLine.value;
       const rightText = rightLine.value;
@@ -38,16 +35,16 @@ export function applyWordDiffs(leftLines: DiffResultWithLineNumbers[], rightLine
       // Apply char diffs to left line (removed)
       leftLine.inlineChanges = charDiffs.map(part => ({
         value: part.value,
-        removed: part.removed,  // Mark parts that are in left but not in right as removed
+        removed: part.removed || (!part.added && !charDiffs.some(p => p.added && p.value === part.value)),  
         added: false,
-      }));
+      })).filter(part => part.value.length > 0);
       
       // Apply char diffs to right line (added)
       rightLine.inlineChanges = charDiffs.map(part => ({
         value: part.value,
         removed: false,
-        added: part.added,  // Mark parts that are in right but not in left as added
-      }));
+        added: part.added || (!part.removed && !charDiffs.some(p => p.removed && p.value === part.value)),
+      })).filter(part => part.value.length > 0);
     }
     
     leftIndex++;

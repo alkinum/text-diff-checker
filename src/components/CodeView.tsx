@@ -1,3 +1,4 @@
+
 import React, { useEffect, useRef } from 'react';
 import Prism from 'prismjs';
 import 'prismjs/components/prism-markup';
@@ -89,7 +90,7 @@ const CodeView: React.FC<CodeViewProps> = ({
                 }
                 
                 // If this line has inline changes, render them
-                if (line.inlineChanges && line.inlineChanges.length) {
+                if (line.inlineChanges && line.inlineChanges.length > 0) {
                   return (
                     <div key={i} className={className}>
                       {line.inlineChanges.map((part, j) => {
