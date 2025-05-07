@@ -36,6 +36,8 @@ interface CodeViewProps {
   position?: 'left' | 'right'; // To determine if it's the left or right view
 }
 
+const LINE_HEIGHT = 'h-6'; // Consistent line height class
+
 const CodeView: React.FC<CodeViewProps> = ({ 
   content, 
   language, 
@@ -66,7 +68,7 @@ const CodeView: React.FC<CodeViewProps> = ({
           {showLineNumbers && (
             <div className="text-right pr-4 py-4 bg-muted/20 text-muted-foreground select-none min-w-[3rem] sticky left-0 z-10 border-r border-border/50">
               {lines.map((line, i) => (
-                <div key={i} className={`text-xs leading-5 h-5 ${line.spacer ? 'text-transparent' : ''}`}>
+                <div key={i} className={`text-xs ${LINE_HEIGHT} leading-6 ${line.spacer ? 'text-transparent' : ''}`}>
                   {line.spacer ? '\u00A0' : line.lineNumber}
                 </div>
               ))}
@@ -77,11 +79,11 @@ const CodeView: React.FC<CodeViewProps> = ({
               {lines.map((line, i) => {
                 // Handle spacer lines
                 if (line.spacer) {
-                  return <div key={i} className="block h-5">&nbsp;</div>;
+                  return <div key={i} className={`block ${LINE_HEIGHT} leading-6`}>&nbsp;</div>;
                 }
                 
                 // Determine line class based on position and line type
-                let className = "block line-highlight h-5";
+                let className = `block ${LINE_HEIGHT} leading-6`;
                 
                 if (position === 'left' && line.removed) {
                   className += " line-removed";
