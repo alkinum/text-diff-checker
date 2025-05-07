@@ -1,13 +1,13 @@
 
 import React, { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { FileDiff, Sparkle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { computeLineDiff, detectLanguage, type FormattedDiff } from "@/utils/diff";
 import DualCodeView from "@/components/DualCodeView";
 import FormatSelector from "@/components/FormatSelector";
+import LineNumberedTextarea from "@/components/LineNumberedTextarea";
 
 const DiffViewer: React.FC = () => {
   const [leftText, setLeftText] = useState("");
@@ -82,20 +82,20 @@ const DiffViewer: React.FC = () => {
             <Button 
               variant="outline" 
               onClick={handleClear}
-              className="hover-lift border-border/50"
+              className="btn-transition border-border/50"
             >
               Clear
             </Button>
             <Button 
               onClick={handleCompare}
-              className="hover-lift bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary"
+              className="btn-transition bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary"
             >
               Compare
             </Button>
           </div>
         </div>
 
-        {/* Text Input View */}
+        {/* Text Input View with Line Numbers */}
         <div className="grid md:grid-cols-2 gap-8">
           <div className="space-y-4 glass-card rounded-xl p-5 transition-all duration-300 hover:shadow-xl">
             <div className="flex justify-between items-center">
@@ -105,12 +105,12 @@ const DiffViewer: React.FC = () => {
                 onLanguageChange={setLanguage}
               />
             </div>
-            <Textarea
+            <LineNumberedTextarea
               id="original"
               placeholder="Paste original text here..."
-              className="min-h-[300px] font-mono text-sm bg-background/50 backdrop-blur-sm border-border/50 focus:border-primary/50 transition-all duration-200 focus:ring-1 focus:ring-primary/30"
               value={leftText}
               onChange={(e) => setLeftText(e.target.value)}
+              minHeight="300px"
             />
           </div>
 
@@ -122,12 +122,12 @@ const DiffViewer: React.FC = () => {
                 onLanguageChange={setLanguage}
               />
             </div>
-            <Textarea
+            <LineNumberedTextarea
               id="modified"
               placeholder="Paste modified text here..."
-              className="min-h-[300px] font-mono text-sm bg-background/50 backdrop-blur-sm border-border/50 focus:border-primary/50 transition-all duration-200 focus:ring-1 focus:ring-primary/30"
               value={rightText}
               onChange={(e) => setRightText(e.target.value)}
+              minHeight="300px"
             />
           </div>
         </div>

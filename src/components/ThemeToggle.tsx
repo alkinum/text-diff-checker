@@ -19,7 +19,7 @@ export function ThemeToggle() {
     <Button
       variant="ghost"
       size="sm"
-      className="px-2 rounded-full bg-background/80 backdrop-blur-sm border border-border/40 shadow-md hover:shadow-lg transition-all duration-300 hover:bg-primary/10"
+      className="px-2 rounded-full bg-background/80 backdrop-blur-sm border border-border/40 shadow-md hover:shadow-lg transition-all duration-300 ease-out transform hover:-translate-y-1 hover:bg-primary/10"
       onClick={() => setTheme(theme === "light" ? "dark" : "light")}
     >
       {theme === "light" ? (

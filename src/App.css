@@ -1,8 +1,18 @@
+
 /* Remove unused styles and keep only essential ones */
 #root {
   width: 100%;
   margin: 0 auto;
   text-align: center;
+}
+
+/* Refined button transitions */
+button {
+  transition: transform 0.2s ease, box-shadow 0.3s ease, background-color 0.3s ease;
+}
+
+button:hover {
+  transform: translateY(-2px);
 }
 
 @keyframes pulse-glow {
@@ -17,3 +27,4 @@
 .pulse-shadow {
   animation: pulse-glow 3s infinite;
 }
+

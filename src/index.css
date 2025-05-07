@@ -131,6 +131,19 @@
     @apply relative before:absolute before:inset-0 before:-z-10 before:p-[1px] before:bg-gradient-to-r before:from-primary/50 before:via-primary before:to-primary/50 before:rounded-xl;
   }
 
+  /* Line number styling for textarea */
+  .line-numbered-wrapper {
+    @apply relative overflow-hidden rounded-md;
+  }
+
+  .line-numbers {
+    @apply absolute left-0 top-0 bottom-0 pt-2 pb-2 pl-2 pr-2 text-right bg-muted/30 text-muted-foreground text-sm font-mono select-none border-r border-border/30 z-10 w-[40px];
+  }
+
+  .line-numbered-textarea {
+    @apply pl-[50px] !important;
+  }
+
   .line-highlight {
     @apply block w-full min-w-fit whitespace-pre h-5 hover:bg-slate-100/50 dark:hover:bg-slate-700/50 transition-colors duration-150;
   }
@@ -151,13 +164,18 @@
     @apply bg-diff-extra-bg text-diff-extra-text border-l-2 border-yellow-500;
   }
   
-  /* Token-level highlighting for inline changes - updated to remove padding and use deeper background colors */
+  /* Token-level highlighting for inline changes - updated with deeper background colors */
   .token-removed {
     @apply bg-red-500 text-white rounded-sm;
   }
   
   .token-added {
     @apply bg-green-600 text-white rounded-sm;
+  }
+
+  /* Button transitions */
+  .btn-transition {
+    @apply transition-all duration-300 ease-out transform hover:-translate-y-1 hover:shadow-lg active:translate-y-0;
   }
 
   /* Animated elements */
