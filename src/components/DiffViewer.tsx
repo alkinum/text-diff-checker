@@ -51,7 +51,7 @@ const DiffViewer: React.FC = () => {
       <header className="mb-8 pt-6 pb-6 text-center">
         <div className="flex items-center justify-center gap-3 mb-4">
           <FileDiff className="h-10 w-10 text-primary" />
-          <h1 className="text-4xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-primary to-blue-500">Text Diff Viewer</h1>
+          <h1 className="text-4xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-primary to-blue-500">Text Diff Checker</h1>
         </div>
         <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
           Compare text files with syntax highlighting for multiple formats
