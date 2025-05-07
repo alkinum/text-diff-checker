@@ -21,50 +21,28 @@ export function applyWordDiffs(leftLines: DiffResultWithLineNumbers[], rightLine
       rightIndex++;
       continue;
     }
-    
-    // Case 1: Both are modified lines - apply word diff
-    if (leftLine.modified && rightLine.modified) {
-      // Do word-level diff for more detailed highlighting
+
+    // Look for pairs of lines that should be compared for word diffs
+    // Either both are at the same position, or marked as added/removed
+    if (leftLine.removed && rightLine.added && 
+        // Ensure we're looking at lines in the same position
+        leftIndex === rightIndex) {
+      // Perform word-level diff
       const wordDiffs = diffWords(leftLine.value, rightLine.value);
       
-      // Apply word diffs to left line
+      // Apply word diffs to left line (removed)
       leftLine.inlineChanges = wordDiffs.map(part => ({
         value: part.value,
         removed: part.removed,
-        added: part.added,
+        added: false, // For left side, we only care about removed parts
       }));
       
-      // Apply word diffs to right line
+      // Apply word diffs to right line (added)
       rightLine.inlineChanges = wordDiffs.map(part => ({
         value: part.value,
-        removed: part.removed,
+        removed: false, // For right side, we only care about added parts
         added: part.added,
       }));
-    }
-    // Case 2: If there's a matching line number - they might be the same line yet one is marked as modified
-    else if (leftLine.lineNumber === rightLine.lineNumber && leftLine.value !== rightLine.value) {
-      // Do word-level diff for more detailed highlighting
-      const wordDiffs = diffWords(leftLine.value, rightLine.value);
-      
-      // If there are differences, mark as modified
-      if (wordDiffs.some(part => part.added || part.removed)) {
-        leftLine.modified = true;
-        rightLine.modified = true;
-        
-        // Apply word diffs to left line
-        leftLine.inlineChanges = wordDiffs.map(part => ({
-          value: part.value,
-          removed: part.removed,
-          added: part.added,
-        }));
-        
-        // Apply word diffs to right line
-        rightLine.inlineChanges = wordDiffs.map(part => ({
-          value: part.value,
-          removed: part.removed,
-          added: part.added,
-        }));
-      }
     }
     
     leftIndex++;

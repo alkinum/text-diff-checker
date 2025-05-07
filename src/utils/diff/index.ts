@@ -13,107 +13,74 @@ export function computeLineDiff(oldText: string, newText: string): FormattedDiff
   const leftLines: DiffResultWithLineNumbers[] = [];
   const rightLines: DiffResultWithLineNumbers[] = [];
   
-  // Get basic diff to identify added/removed blocks
-  const diff = diffLines(oldText, newText);
-  
   let leftLineNumber = 1;
   let rightLineNumber = 1;
 
-  // Helper function to identify modified lines vs add/remove
-  const isInlineModification = (oldIndex: number, newIndex: number): boolean => {
-    if (oldIndex >= oldLines.length || newIndex >= newLines.length) return false;
-    
-    const oldLine = oldLines[oldIndex];
-    const newLine = newLines[newIndex];
-    
-    // If lines are similar but not identical, treat as modification
-    if (oldLine !== newLine && 
-        (oldLine.length > 0 && newLine.length > 0) && 
-        (oldLine.substring(0, 3) === newLine.substring(0, 3))) {
-      return true;
-    }
-    
-    return false;
-  };
-  
-  let oldIndex = 0;
-  let newIndex = 0;
-  
   // Process each line with smarter alignment
-  while (oldIndex < oldLines.length || newIndex < newLines.length) {
-    // Case 1: Both lines exist and are identical
-    if (oldIndex < oldLines.length && newIndex < newLines.length && 
-        oldLines[oldIndex] === newLines[newIndex]) {
-      // Add unchanged line to both sides
-      leftLines.push({
-        value: oldLines[oldIndex],
-        lineNumber: leftLineNumber++
-      });
-      
-      rightLines.push({
-        value: newLines[newIndex],
-        lineNumber: rightLineNumber++
-      });
-      
-      oldIndex++;
-      newIndex++;
+  for (let i = 0; i < Math.max(oldLines.length, newLines.length); i++) {
+    const oldLine = i < oldLines.length ? oldLines[i] : null;
+    const newLine = i < newLines.length ? newLines[i] : null;
+    
+    // Case 1: Line exists in both old and new
+    if (oldLine !== null && newLine !== null) {
+      // Check if lines are identical
+      if (oldLine === newLine) {
+        // Add unchanged line to both sides
+        leftLines.push({
+          value: oldLine,
+          lineNumber: leftLineNumber++
+        });
+        
+        rightLines.push({
+          value: newLine,
+          lineNumber: rightLineNumber++
+        });
+      } else {
+        // Lines are different but at same position - mark as modified
+        leftLines.push({
+          value: oldLine,
+          lineNumber: leftLineNumber++,
+          removed: true  // Mark as removed in left side as per requirement
+        });
+        
+        rightLines.push({
+          value: newLine,
+          lineNumber: rightLineNumber++,
+          added: true    // Mark as added in right side as per requirement
+        });
+      }
     }
-    // Case 2: Both lines exist but are different - check if it's an inline modification
-    else if (oldIndex < oldLines.length && newIndex < newLines.length && 
-             isInlineModification(oldIndex, newIndex)) {
-      // Add as modified lines rather than add/remove
+    // Case 2: Line exists only in old text
+    else if (oldLine !== null) {
+      // Line was removed
       leftLines.push({
-        value: oldLines[oldIndex],
-        lineNumber: leftLineNumber++,
-        modified: true
-      });
-      
-      rightLines.push({
-        value: newLines[newIndex],
-        lineNumber: rightLineNumber++,
-        modified: true
-      });
-      
-      oldIndex++;
-      newIndex++;
-    }
-    // Case 3: Line removed from old text
-    else if (oldIndex < oldLines.length && 
-            (newIndex >= newLines.length || 
-             !newLines.slice(newIndex).includes(oldLines[oldIndex]))) {
-      // Add removed line in the left side
-      leftLines.push({
-        value: oldLines[oldIndex],
+        value: oldLine,
         removed: true,
         lineNumber: leftLineNumber++
       });
       
-      // Add a spacer in the right side
+      // Add a spacer in right side
       rightLines.push({
         value: '',
         lineNumber: -1,
         spacer: true
       });
-      
-      oldIndex++;
     }
-    // Case 4: Line added in new text
-    else if (newIndex < newLines.length) {
-      // Add a spacer in the left side
+    // Case 3: Line exists only in new text
+    else if (newLine !== null) {
+      // Add a spacer in left side
       leftLines.push({
         value: '',
         lineNumber: -1,
         spacer: true
       });
       
-      // Add the actual line in the right side
+      // Line was added
       rightLines.push({
-        value: newLines[newIndex],
+        value: newLine,
         added: true,
         lineNumber: rightLineNumber++
       });
-      
-      newIndex++;
     }
   }
   

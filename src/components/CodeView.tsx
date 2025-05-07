@@ -83,14 +83,10 @@ const CodeView: React.FC<CodeViewProps> = ({
                 // Determine line class based on position and line type
                 let className = "block line-highlight h-5";
                 
-                if (position === 'left') {
-                  // Original text block highlighting
-                  if (line.removed) className += " line-removed";
-                  else if (line.modified) className += " line-modified";
-                } else {
-                  // Modified text block highlighting
-                  if (line.added) className += " line-added";
-                  else if (line.modified) className += " line-modified";
+                if (position === 'left' && line.removed) {
+                  className += " line-removed";
+                } else if (position === 'right' && line.added) {
+                  className += " line-added";
                 }
                 
                 // If this line has inline changes, render them
@@ -112,22 +108,17 @@ const CodeView: React.FC<CodeViewProps> = ({
                         else if (position === 'right' && part.added) {
                           spanClass = "token-added";
                         }
-                        // Skip parts that don't apply to this side
-                        else if ((position === 'left' && part.added) || 
-                                 (position === 'right' && part.removed)) {
-                          return null;
-                        }
                         
                         return (
                           <span 
                             key={j} 
                             className={spanClass}
                             dangerouslySetInnerHTML={{ 
-                              __html: part.value ? Prism.highlight(
+                              __html: Prism.highlight(
                                 part.value, 
                                 Prism.languages[language] || Prism.languages.plaintext, 
                                 language
-                              ) : " "
+                              )
                             }}
                           />
                         );
