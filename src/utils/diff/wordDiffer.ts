@@ -1,8 +1,8 @@
 
-import { diffWords } from 'diff';
+import { diffChars } from 'diff';
 import { DiffResultWithLineNumbers } from './types';
 
-// Function to apply word-level diffs to modified lines
+// Function to apply character-level diffs to modified lines
 export function applyWordDiffs(leftLines: DiffResultWithLineNumbers[], rightLines: DiffResultWithLineNumbers[]): void {
   let leftIndex = 0;
   let rightIndex = 0;
@@ -27,18 +27,18 @@ export function applyWordDiffs(leftLines: DiffResultWithLineNumbers[], rightLine
     if (leftLine.removed && rightLine.added && 
         // Ensure we're looking at lines in the same position
         leftIndex === rightIndex) {
-      // Perform word-level diff
-      const wordDiffs = diffWords(leftLine.value, rightLine.value);
+      // Perform character-level diff instead of word-level
+      const charDiffs = diffChars(leftLine.value, rightLine.value);
       
-      // Apply word diffs to left line (removed)
-      leftLine.inlineChanges = wordDiffs.map(part => ({
+      // Apply char diffs to left line (removed)
+      leftLine.inlineChanges = charDiffs.map(part => ({
         value: part.value,
         removed: part.removed,
         added: false, // For left side, we only care about removed parts
       }));
       
-      // Apply word diffs to right line (added)
-      rightLine.inlineChanges = wordDiffs.map(part => ({
+      // Apply char diffs to right line (added)
+      rightLine.inlineChanges = charDiffs.map(part => ({
         value: part.value,
         removed: false, // For right side, we only care about added parts
         added: part.added,

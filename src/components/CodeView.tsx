@@ -97,17 +97,13 @@ const CodeView: React.FC<CodeViewProps> = ({
                         // Skip rendering empty parts
                         if (!part.value) return null;
                         
-                        // Add highlighting only to changed parts
-                        let spanClass = "";
+                        // Determine if this part should be highlighted
+                        const isHighlighted = (position === 'left' && part.removed) || 
+                                             (position === 'right' && part.added);
                         
-                        // For left side (original)
-                        if (position === 'left' && part.removed) {
-                          spanClass = "token-removed";
-                        }
-                        // For right side (modified)
-                        else if (position === 'right' && part.added) {
-                          spanClass = "token-added";
-                        }
+                        // Only apply special styling to the changed parts
+                        const spanClass = isHighlighted ? 
+                          (position === 'left' ? "token-removed" : "token-added") : "";
                         
                         return (
                           <span 

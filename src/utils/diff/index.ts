@@ -84,7 +84,7 @@ export function computeLineDiff(oldText: string, newText: string): FormattedDiff
     }
   }
   
-  // Apply word-level diffs for modified lines
+  // Apply character-level diffs for modified lines
   applyWordDiffs(leftLines, rightLines);
   
   return { left: leftLines, right: rightLines };
