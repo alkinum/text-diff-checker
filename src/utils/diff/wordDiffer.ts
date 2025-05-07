@@ -30,18 +30,18 @@ export function applyWordDiffs(leftLines: DiffResultWithLineNumbers[], rightLine
       // Perform character-level diff instead of word-level
       const charDiffs = diffChars(leftLine.value, rightLine.value);
       
-      // Apply char diffs to left line (removed)
+      // Apply char diffs to left line (removed) - REVERSED logic
       leftLine.inlineChanges = charDiffs.map(part => ({
         value: part.value,
-        removed: part.removed,
-        added: false, // For left side, we only care about removed parts
+        removed: part.added, // REVERSED: For left side, highlight parts that were added in the right
+        added: false,
       }));
       
-      // Apply char diffs to right line (added)
+      // Apply char diffs to right line (added) - REVERSED logic
       rightLine.inlineChanges = charDiffs.map(part => ({
         value: part.value,
-        removed: false, // For right side, we only care about added parts
-        added: part.added,
+        removed: false,
+        added: part.removed, // REVERSED: For right side, highlight parts that were removed from the left
       }));
     }
     

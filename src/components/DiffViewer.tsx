@@ -50,7 +50,7 @@ const DiffViewer: React.FC = () => {
     <div className="max-w-7xl mx-auto p-6 animate-fade-in">
       <header className="mb-8 pt-6 pb-8 text-center">
         <div className="flex items-center justify-center gap-3 mb-6">
-          <FileDiff className="h-12 w-12 text-primary animate-pulse" />
+          <FileDiff className="h-12 w-12 text-primary" />
           <h1 className="text-4xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-primary to-blue-500">
             Text Diff Checker
           </h1>

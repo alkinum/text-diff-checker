@@ -6,9 +6,9 @@
   text-align: center;
 }
 
-/* Refined button transitions */
+/* Refined button transitions with added transition for translateY */
 button {
-  transition: transform 0.2s ease, box-shadow 0.3s ease, background-color 0.3s ease;
+  transition: transform 0.3s ease-out, box-shadow 0.3s ease, background-color 0.3s ease;
 }
 
 button:hover {
@@ -27,4 +27,3 @@ button:hover {
 .pulse-shadow {
   animation: pulse-glow 3s infinite;
 }
-
