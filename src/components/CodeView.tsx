@@ -1,4 +1,3 @@
-
 import React, { useEffect, useRef } from 'react';
 import Prism from 'prismjs';
 import 'prismjs/components/prism-markup';
@@ -97,13 +96,16 @@ const CodeView: React.FC<CodeViewProps> = ({
                         // Skip rendering empty parts
                         if (!part.value) return null;
                         
-                        // Determine if this part should be highlighted
-                        const isHighlighted = (position === 'left' && part.removed) || 
-                                             (position === 'right' && part.added);
+                        let spanClass = "";
                         
-                        // Only apply special styling to the changed parts
-                        const spanClass = isHighlighted ? 
-                          (position === 'left' ? "token-removed" : "token-added") : "";
+                        // Apply highlighting for removed parts in original (left)
+                        if (position === 'left' && part.removed) {
+                          spanClass = "token-removed";
+                        }
+                        // Apply highlighting for added parts in modified (right)
+                        else if (position === 'right' && part.added) {
+                          spanClass = "token-added";
+                        }
                         
                         return (
                           <span 

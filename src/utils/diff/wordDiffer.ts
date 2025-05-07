@@ -27,21 +27,21 @@ export function applyWordDiffs(leftLines: DiffResultWithLineNumbers[], rightLine
     if (leftLine.removed && rightLine.added && 
         // Ensure we're looking at lines in the same position
         leftIndex === rightIndex) {
-      // Perform character-level diff instead of word-level
+      // Perform character-level diff
       const charDiffs = diffChars(leftLine.value, rightLine.value);
       
-      // Apply char diffs to left line (removed) - REVERSED logic
+      // Apply char diffs to left line (removed)
       leftLine.inlineChanges = charDiffs.map(part => ({
         value: part.value,
-        removed: part.added, // REVERSED: For left side, highlight parts that were added in the right
+        removed: part.removed,  // Mark parts that are in left but not in right as removed
         added: false,
       }));
       
-      // Apply char diffs to right line (added) - REVERSED logic
+      // Apply char diffs to right line (added)
       rightLine.inlineChanges = charDiffs.map(part => ({
         value: part.value,
         removed: false,
-        added: part.removed, // REVERSED: For right side, highlight parts that were removed from the left
+        added: part.added,  // Mark parts that are in right but not in left as added
       }));
     }
     
