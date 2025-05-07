@@ -1,3 +1,4 @@
+
 import React, { useEffect, useRef } from 'react';
 import Prism from 'prismjs';
 import 'prismjs/components/prism-markup';
@@ -86,48 +87,54 @@ const CodeView: React.FC<CodeViewProps> = ({
                   // Original text block highlighting
                   if (line.removed) className += " line-removed";
                   else if (line.modified) className += " line-modified";
-                  else if (line.extraLine) className += " line-extra-original";
                 } else {
                   // Modified text block highlighting
                   if (line.added) className += " line-added";
                   else if (line.modified) className += " line-modified";
                 }
                 
-                return (
-                  <div key={i} className={className}>
-                    {line.inlineChanges ? (
-                      // Render with inline changes
-                      line.inlineChanges.map((part, j) => {
+                // If this line has inline changes, render them
+                if (line.inlineChanges && line.inlineChanges.length) {
+                  return (
+                    <div key={i} className={className}>
+                      {line.inlineChanges.map((part, j) => {
+                        // Only add highlighting class to actually changed parts
                         let spanClass = "";
-                        if (position === 'left' && part.removed) spanClass += " token-removed";
-                        else if (position === 'right' && part.added) spanClass += " token-added";
+                        if ((position === 'left' && part.removed) || 
+                            (position === 'right' && part.added)) {
+                          spanClass = position === 'left' ? "token-removed" : "token-added";
+                        }
                         
                         return (
                           <span 
                             key={j} 
                             className={spanClass}
                             dangerouslySetInnerHTML={{ 
-                              __html: Prism.highlight(
-                                part.value || " ", 
+                              __html: part.value ? Prism.highlight(
+                                part.value, 
                                 Prism.languages[language] || Prism.languages.plaintext, 
                                 language
-                              )
+                              ) : " "
                             }}
                           />
                         );
-                      })
-                    ) : (
-                      // Render normal line
-                      <span 
-                        dangerouslySetInnerHTML={{ 
-                          __html: Prism.highlight(
-                            line.value || " ", 
-                            Prism.languages[language] || Prism.languages.plaintext, 
-                            language
-                          )
-                        }} 
-                      />
-                    )}
+                      })}
+                    </div>
+                  );
+                }
+                
+                // Regular line rendering (no inline changes)
+                return (
+                  <div key={i} className={className}>
+                    <span 
+                      dangerouslySetInnerHTML={{ 
+                        __html: Prism.highlight(
+                          line.value || " ", 
+                          Prism.languages[language] || Prism.languages.plaintext, 
+                          language
+                        )
+                      }} 
+                    />
                   </div>
                 );
               })}

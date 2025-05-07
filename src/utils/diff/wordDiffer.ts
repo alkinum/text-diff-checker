@@ -5,15 +5,23 @@ import { DiffResultWithLineNumbers } from './types';
 // Function to apply word-level diffs to modified lines
 export function applyWordDiffs(leftLines: DiffResultWithLineNumbers[], rightLines: DiffResultWithLineNumbers[]): void {
   // Apply word-level diff only to lines that are modified (not added or removed)
-  for (let i = 0; i < Math.min(leftLines.length, rightLines.length); i++) {
+  for (let i = 0; i < leftLines.length; i++) {
     const leftLine = leftLines[i];
-    const rightLine = rightLines[i];
     
-    // Skip spacers and obvious add/remove pairs
-    if (leftLine.spacer || rightLine.spacer || leftLine.added || leftLine.removed || 
-        rightLine.added || rightLine.removed) {
-      continue;
-    }
+    // Skip if this is a spacer
+    if (leftLine.spacer) continue;
+    
+    // Find the corresponding line in the right side (if any)
+    const rightIndex = rightLines.findIndex(line => 
+      !line.spacer && 
+      line.lineNumber === leftLine.lineNumber && 
+      !line.added && 
+      !leftLine.removed
+    );
+    
+    if (rightIndex === -1) continue; // No matching line
+    
+    const rightLine = rightLines[rightIndex];
     
     // If lines are different without being marked as added/removed
     if (leftLine.value !== rightLine.value) {
