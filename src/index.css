@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -55,52 +56,53 @@
   }
 
   .dark {
-    --background: 240 10% 3.9%;
+    /* Lighter dark mode background and colors */
+    --background: 240 10% 10%; /* Lighter than before */
     --foreground: 0 0% 98%;
 
-    --card: 240 10% 3.9%;
+    --card: 240 10% 12%; /* Lighter card background */
     --card-foreground: 0 0% 98%;
 
-    --popover: 240 10% 3.9%;
+    --popover: 240 10% 12%;
     --popover-foreground: 0 0% 98%;
 
-    --primary: 262 83% 58%;
+    --primary: 262 83% 65%; /* Slightly brighter primary */
     --primary-foreground: 0 0% 98%;
 
-    --secondary: 240 3.7% 15.9%;
+    --secondary: 240 5% 22%; /* Lighter secondary */
     --secondary-foreground: 0 0% 98%;
 
-    --muted: 240 3.7% 15.9%;
-    --muted-foreground: 240 5% 64.9%;
+    --muted: 240 5% 22%;
+    --muted-foreground: 240 5% 75%; /* Brighter muted text */
 
-    --accent: 270 50% 15%;
-    --accent-foreground: 262 83% 58%;
+    --accent: 270 50% 22%; /* Lighter accent */
+    --accent-foreground: 262 83% 65%;
 
-    --destructive: 0 62.8% 30.6%;
+    --destructive: 0 62.8% 40%; /* Brighter destructive */
     --destructive-foreground: 0 0% 98%;
 
-    --border: 240 3.7% 15.9%;
-    --input: 240 3.7% 15.9%;
-    --ring: 262 83% 58%;
+    --border: 240 5% 25%; /* Lighter border */
+    --input: 240 5% 25%;
+    --ring: 262 83% 65%;
     
-    --diff-added-bg: 142 76% 12%;
-    --diff-added-text: 142 72% 70%;
-    --diff-removed-bg: 0 84% 12%;
-    --diff-removed-text: 0 72% 70%;
-    --diff-changed-bg: 217 92% 12%;
-    --diff-changed-text: 217 92% 70%;
+    --diff-added-bg: 142 76% 15%; /* Lighter diff backgrounds */
+    --diff-added-text: 142 72% 80%;
+    --diff-removed-bg: 0 84% 15%;
+    --diff-removed-text: 0 72% 80%;
+    --diff-changed-bg: 217 92% 15%;
+    --diff-changed-text: 217 92% 80%;
 
-    --diff-extra-bg: 230 50% 15%;
-    --diff-extra-text: 230 50% 75%;
+    --diff-extra-bg: 230 50% 20%;
+    --diff-extra-text: 230 50% 85%;
 
-    --sidebar-background: 240 5.9% 10%;
+    --sidebar-background: 240 10% 15%;
     --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
+    --sidebar-primary: 224.3 76.3% 55%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
+    --sidebar-accent: 240 5% 22%;
     --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --sidebar-border: 240 5% 25%;
+    --sidebar-ring: 217.2 91.2% 65%;
   }
 }
 
@@ -110,7 +112,8 @@
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground antialiased;
+    transition: background-color 0.3s ease, color 0.3s ease;
   }
 
   pre {
@@ -119,8 +122,17 @@
 }
 
 @layer components {
+  /* Modern UI classes */
+  .glass-card {
+    @apply bg-card/70 backdrop-blur-md border border-border/50 shadow-lg;
+  }
+
+  .gradient-border {
+    @apply relative before:absolute before:inset-0 before:-z-10 before:p-[1px] before:bg-gradient-to-r before:from-primary/50 before:via-primary before:to-primary/50 before:rounded-xl;
+  }
+
   .line-highlight {
-    @apply block w-full min-w-fit whitespace-pre h-5 hover:bg-slate-100 dark:hover:bg-slate-800/50;
+    @apply block w-full min-w-fit whitespace-pre h-5 hover:bg-slate-100/50 dark:hover:bg-slate-700/50 transition-colors duration-150;
   }
 
   .line-removed {
@@ -147,6 +159,24 @@
   .token-added {
     @apply bg-green-600 text-white rounded-sm;
   }
+
+  /* Animated elements */
+  .hover-lift {
+    @apply transition-transform duration-300 hover:-translate-y-1 hover:shadow-lg;
+  }
+}
+
+/* Modern button styles */
+button.btn-modern {
+  @apply relative overflow-hidden transition-all duration-300 hover:shadow-md active:shadow-inner;
+}
+
+button.btn-modern::before {
+  @apply content-[''] absolute inset-0 bg-gradient-to-r from-primary/20 to-primary/10 opacity-0 transition-opacity duration-300;
+}
+
+button.btn-modern:hover::before {
+  @apply opacity-100;
 }
 
 /* Prism code highlighting styles */
