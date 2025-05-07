@@ -2,15 +2,16 @@
 import { diffWords } from 'diff';
 import { DiffResultWithLineNumbers } from './types';
 
-// Function to apply word-level diffs to aligned lines
-export function applyWordDiffs(alignedLeft: DiffResultWithLineNumbers[], alignedRight: DiffResultWithLineNumbers[]): void {
-  // Compare each aligned line to detect modifications
-  for (let i = 0; i < alignedLeft.length; i++) {
-    const leftLine = alignedLeft[i];
-    const rightLine = alignedRight[i];
+// Function to apply word-level diffs to modified lines
+export function applyWordDiffs(leftLines: DiffResultWithLineNumbers[], rightLines: DiffResultWithLineNumbers[]): void {
+  // Apply word-level diff only to lines that are modified (not added or removed)
+  for (let i = 0; i < Math.min(leftLines.length, rightLines.length); i++) {
+    const leftLine = leftLines[i];
+    const rightLine = rightLines[i];
     
     // Skip spacers and obvious add/remove pairs
-    if (leftLine.spacer || rightLine.spacer) {
+    if (leftLine.spacer || rightLine.spacer || leftLine.added || leftLine.removed || 
+        rightLine.added || rightLine.removed) {
       continue;
     }
     

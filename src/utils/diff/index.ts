@@ -1,94 +1,117 @@
 import { diffLines } from 'diff';
-import { prepareLineDiff, alignLines } from './lineAligner';
 import { applyWordDiffs } from './wordDiffer';
 import { detectLanguage } from './languageDetector';
-import { FormattedDiff, DiffResult, DiffResultWithLineNumbers } from './types';
+import { FormattedDiff, DiffResultWithLineNumbers } from './types';
 
-// Main function to compute line-by-line differences with proper alignment
+// Main function to compute line-by-line differences with top-to-bottom comparison
 export function computeLineDiff(oldText: string, newText: string): FormattedDiff {
-  // First, compute the raw line-by-line differences
-  const diff = diffLines(oldText, newText);
+  // Split the text into arrays of lines
+  const oldLines = oldText.split('\n');
+  const newLines = newText.split('\n');
   
-  // Create aligned arrays of line differences
-  const { leftLines, rightLines } = createAlignedDiffs(diff);
+  // Create arrays to store the line-by-line diff result
+  const leftLines: DiffResultWithLineNumbers[] = [];
+  const rightLines: DiffResultWithLineNumbers[] = [];
+  
+  // Count how many lines we need to compare
+  const maxLines = Math.max(oldLines.length, newLines.length);
+  
+  // Process each line by comparing directly without pre-alignment
+  for (let i = 0; i < maxLines; i++) {
+    const oldLine = i < oldLines.length ? oldLines[i] : null;
+    const newLine = i < newLines.length ? newLines[i] : null;
+    
+    if (oldLine === null) {
+      // Line only exists in the new text
+      rightLines.push({
+        value: newLine as string,
+        added: true,
+        lineNumber: i + 1
+      });
+      
+      leftLines.push({
+        value: '',
+        lineNumber: -1,
+        spacer: true
+      });
+    } else if (newLine === null) {
+      // Line only exists in the old text
+      leftLines.push({
+        value: oldLine,
+        removed: true,
+        lineNumber: i + 1
+      });
+      
+      rightLines.push({
+        value: '',
+        lineNumber: -1,
+        spacer: true
+      });
+    } else if (oldLine !== newLine) {
+      // Line exists in both but was modified
+      leftLines.push({
+        value: oldLine,
+        lineNumber: i + 1
+      });
+      
+      rightLines.push({
+        value: newLine,
+        lineNumber: i + 1
+      });
+      
+      // Mark both lines as modified for further word-level diff
+      leftLines[leftLines.length - 1].modified = true;
+      rightLines[rightLines.length - 1].modified = true;
+    } else {
+      // Line exists in both and is unchanged
+      leftLines.push({
+        value: oldLine,
+        lineNumber: i + 1
+      });
+      
+      rightLines.push({
+        value: newLine,
+        lineNumber: i + 1
+      });
+    }
+  }
   
   // Apply word-level diffs for modified lines
-  applyWordDiffs(leftLines, rightLines);
+  applyWordDiffsForModifiedLines(leftLines, rightLines);
   
   return { left: leftLines, right: rightLines };
 }
 
-// Helper function to create aligned arrays from the diff result
-function createAlignedDiffs(diff: any[]): {
-  leftLines: DiffResultWithLineNumbers[];
-  rightLines: DiffResultWithLineNumbers[];
-} {
-  const leftLines: DiffResultWithLineNumbers[] = [];
-  const rightLines: DiffResultWithLineNumbers[] = [];
-  
-  let leftLineNumber = 1;
-  let rightLineNumber = 1;
-  
-  // Process each diff part
-  diff.forEach(part => {
-    const lines = part.value.split('\n');
-    
-    // Remove empty line at the end (from trailing newline)
-    if (lines[lines.length - 1] === '') {
-      lines.pop();
+// Helper function to apply word-level diffs only to modified lines
+function applyWordDiffsForModifiedLines(leftLines: DiffResultWithLineNumbers[], rightLines: DiffResultWithLineNumbers[]): void {
+  for (let i = 0; i < leftLines.length; i++) {
+    if (leftLines[i].modified && rightLines[i].modified) {
+      const leftLine = leftLines[i];
+      const rightLine = rightLines[i];
+      
+      // Apply word-level diff to modified lines
+      const leftValue = leftLine.value;
+      const rightValue = rightLine.value;
+      
+      if (leftValue !== rightValue) {
+        const wordDiffs = diffLines(leftValue, rightValue);
+        
+        leftLine.inlineChanges = wordDiffs.map(part => ({
+          value: part.value,
+          removed: part.removed,
+          added: part.added,
+        }));
+        
+        rightLine.inlineChanges = wordDiffs.map(part => ({
+          value: part.value,
+          removed: part.removed,
+          added: part.added,
+        }));
+      }
     }
-    
-    if (part.added) {
-      // Added lines go only to the right side
-      lines.forEach(line => {
-        // Add a spacer on the left for alignment
-        leftLines.push({
-          value: '',
-          lineNumber: -1,
-          spacer: true
-        });
-        
-        rightLines.push({
-          value: line,
-          added: true,
-          lineNumber: rightLineNumber++
-        });
-      });
-    } else if (part.removed) {
-      // Removed lines go only to the left side
-      lines.forEach(line => {
-        leftLines.push({
-          value: line,
-          removed: true,
-          lineNumber: leftLineNumber++
-        });
-        
-        // Add a spacer on the right for alignment
-        rightLines.push({
-          value: '',
-          lineNumber: -1,
-          spacer: true
-        });
-      });
-    } else {
-      // Unchanged lines go to both sides
-      lines.forEach(line => {
-        leftLines.push({
-          value: line,
-          lineNumber: leftLineNumber++
-        });
-        
-        rightLines.push({
-          value: line,
-          lineNumber: rightLineNumber++
-        });
-      });
-    }
-  });
-  
-  return { leftLines, rightLines };
+  }
 }
 
 // Re-export all types and utilities
 export { detectLanguage };
-export type { FormattedDiff, DiffResult, DiffResultWithLineNumbers };
+export type { FormattedDiff, DiffResultWithLineNumbers };
