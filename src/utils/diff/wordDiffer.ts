@@ -1,4 +1,3 @@
-
 import { diffChars } from 'diff';
 import { DiffResultWithLineNumbers } from './types';
 
@@ -23,19 +22,80 @@ export function applyWordDiffs(leftLines: DiffResultWithLineNumbers[], rightLine
     }
 
     // Look for pairs of lines that should be compared for word diffs
-    // Either both are at the same position, or marked as added/removed
     if (leftLine.removed && rightLine.added) {
       // Get the raw text from the lines for accurate diffing
       const leftText = leftLine.value;
       const rightText = rightLine.value;
       
-      // Perform character-level diff using the actual line content
-      const charDiffs = diffChars(leftText, rightText);
+      // Perform a right-aligned diff to better highlight the differences
+      let charDiffs;
+      
+      // Special case: If one is a substring of the other, perform a special alignment
+      if (rightText.includes(leftText) || leftText.includes(rightText)) {
+        if (rightText.includes(leftText)) {
+          // The left text is fully contained in the right text
+          // Find where the differences are by right-aligning
+          const commonPrefix = findCommonPrefix(leftText, rightText);
+          const commonSuffix = findCommonSuffix(leftText, rightText);
+          
+          // Create a simulated diff result
+          charDiffs = [];
+          
+          // Common prefix (unchanged)
+          if (commonPrefix) {
+            charDiffs.push({ value: commonPrefix });
+          }
+          
+          // Middle part - only in right text (added)
+          const middleRight = rightText.substring(
+            commonPrefix.length, 
+            rightText.length - commonSuffix.length
+          );
+          if (middleRight) {
+            charDiffs.push({ value: middleRight, added: true });
+          }
+          
+          // Common suffix (unchanged)
+          if (commonSuffix) {
+            charDiffs.push({ value: commonSuffix });
+          }
+        } else {
+          // The right text is fully contained in the left text
+          // Find where the differences are by right-aligning
+          const commonPrefix = findCommonPrefix(leftText, rightText);
+          const commonSuffix = findCommonSuffix(leftText, rightText);
+          
+          // Create a simulated diff result
+          charDiffs = [];
+          
+          // Common prefix (unchanged)
+          if (commonPrefix) {
+            charDiffs.push({ value: commonPrefix });
+          }
+          
+          // Middle part - only in left text (removed)
+          const middleLeft = leftText.substring(
+            commonPrefix.length, 
+            leftText.length - commonSuffix.length
+          );
+          if (middleLeft) {
+            charDiffs.push({ value: middleLeft, removed: true });
+          }
+          
+          // Common suffix (unchanged)
+          if (commonSuffix) {
+            charDiffs.push({ value: commonSuffix });
+          }
+        }
+      } else {
+        // Use regular char diffing for non-substring cases
+        charDiffs = diffChars(leftText, rightText);
+      }
       
       // Apply char diffs to left line (removed)
       leftLine.inlineChanges = charDiffs.map(part => ({
         value: part.value,
-        removed: part.removed || (!part.added && !charDiffs.some(p => p.added && p.value === part.value)),  
+        removed: part.removed ?? false,
         added: false,
       })).filter(part => part.value.length > 0);
       
@@ -43,11 +103,33 @@ export function applyWordDiffs(leftLines: DiffResultWithLineNumbers[], rightLine
       rightLine.inlineChanges = charDiffs.map(part => ({
         value: part.value,
         removed: false,
-        added: part.added || (!part.removed && !charDiffs.some(p => p.removed && p.value === part.value)),
+        added: part.added ?? false,
       })).filter(part => part.value.length > 0);
     }
     
     leftIndex++;
     rightIndex++;
   }
+}
+
+// Helper function to find common prefix of two strings
+function findCommonPrefix(str1: string, str2: string): string {
+  let i = 0;
+  while (i < str1.length && i < str2.length && str1[i] === str2[i]) {
+    i++;
+  }
+  return str1.substring(0, i);
+}
+
+// Helper function to find common suffix of two strings
+function findCommonSuffix(str1: string, str2: string): string {
+  let i = 0;
+  while (
+    i < str1.length &&
+    i < str2.length &&
+    str1[str1.length - 1 - i] === str2[str2.length - 1 - i]
+  ) {
+    i++;
+  }
+  return i > 0 ? str1.substring(str1.length - i) : '';
 }
