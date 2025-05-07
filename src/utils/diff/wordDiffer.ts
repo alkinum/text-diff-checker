@@ -15,9 +15,7 @@ export function applyWordDiffs(alignedLeft: DiffResultWithLineNumbers[], aligned
     }
     
     // If lines are different without being marked as added/removed
-    if (leftLine.value !== rightLine.value && 
-        !leftLine.removed && !rightLine.added) {
-      
+    if (leftLine.value !== rightLine.value) {
       // Do word-level diff for more detailed highlighting
       const wordDiffs = diffWords(leftLine.value, rightLine.value);
       
@@ -40,11 +38,6 @@ export function applyWordDiffs(alignedLeft: DiffResultWithLineNumbers[], aligned
         leftLine.modified = true;
         rightLine.modified = true;
       }
-    }
-    
-    // Mark original lines that don't have a match on the right as "extra"
-    if (!leftLine.removed && !leftLine.modified && rightLine.spacer) {
-      leftLine.extraLine = true;
     }
   }
 }
