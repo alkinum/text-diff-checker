@@ -1,4 +1,3 @@
-
 import React, { useEffect, useRef, useState } from 'react';
 import { type DiffResultWithLineNumbers } from '@/utils/diff/types';
 
@@ -12,6 +11,7 @@ interface DiffMinimapProps {
 const DiffMinimap: React.FC<DiffMinimapProps> = ({ lines, containerRef, position, isExpanded = false }) => {
   const minimapRef = useRef<HTMLDivElement>(null);
   const [viewportPosition, setViewportPosition] = useState({ top: 0, height: 30 });
+  const [isDragging, setIsDragging] = useState(false);
   
   useEffect(() => {
     const container = containerRef.current;
@@ -39,9 +39,11 @@ const DiffMinimap: React.FC<DiffMinimapProps> = ({ lines, containerRef, position
       container.removeEventListener('scroll', updateViewport);
       window.removeEventListener('resize', updateViewport);
     };
-  }, [containerRef]);
+  }, [containerRef, lines, isExpanded]);
 
   const handleMinimapClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (isDragging) return;
+
     if (!containerRef.current || !minimapRef.current) return;
     
     const minimapRect = minimapRef.current.getBoundingClientRect();
@@ -49,6 +51,62 @@ const DiffMinimap: React.FC<DiffMinimapProps> = ({ lines, containerRef, position
     const ratio = containerRef.current.scrollHeight / minimapRef.current.clientHeight;
     
     containerRef.current.scrollTop = clickPosition * ratio;
+  };
+
+  const handleMouseDownOnViewport = (e: React.MouseEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (!containerRef.current || !minimapRef.current) return;
+
+    const containerScrollHeight = containerRef.current.scrollHeight;
+    const containerClientHeight = containerRef.current.clientHeight;
+    const minimapHeight = minimapRef.current.clientHeight;
+    
+    if (containerClientHeight >= containerScrollHeight) return;
+    
+    setIsDragging(true);
+    
+    const initialMouseY = e.clientY;
+    const initialScrollTop = containerRef.current.scrollTop;
+    
+    const handleDragMove = (e: MouseEvent) => {
+      if (!minimapRef.current || !containerRef.current) return;
+      
+      const mouseDeltaY = e.clientY - initialMouseY;
+      
+      const scrollRatio = minimapHeight / containerScrollHeight;
+      const scrollDelta = mouseDeltaY / scrollRatio;
+      
+      let newScrollTop = initialScrollTop + scrollDelta;
+      
+      newScrollTop = Math.max(0, newScrollTop);
+      newScrollTop = Math.min(containerScrollHeight - containerClientHeight, newScrollTop);
+      
+      requestAnimationFrame(() => {
+        if (containerRef.current) {
+          containerRef.current.scrollTop = newScrollTop;
+          
+          const newRatio = newScrollTop / containerScrollHeight;
+          setViewportPosition(prev => ({
+            ...prev,
+            top: newRatio * minimapHeight
+          }));
+        }
+      });
+    };
+    
+    const handleDragEnd = () => {
+      setIsDragging(false);
+      document.removeEventListener('mousemove', handleDragMove);
+      document.removeEventListener('mouseup', handleDragEnd);
+      document.body.style.userSelect = '';
+    };
+    
+    document.body.style.userSelect = 'none';
+    
+    document.addEventListener('mousemove', handleDragMove);
+    document.addEventListener('mouseup', handleDragEnd);
   };
 
   // Filter out spacer lines
@@ -124,7 +182,7 @@ const DiffMinimap: React.FC<DiffMinimapProps> = ({ lines, containerRef, position
           return (
             <div 
               key={i}
-              className={`absolute ${colorClass} w-full`}
+              className={`absolute ${colorClass} w-full rounded-full`}
               style={{
                 top: `${top}%`,
                 height: `${Math.max(2, height)}%`,
@@ -136,11 +194,12 @@ const DiffMinimap: React.FC<DiffMinimapProps> = ({ lines, containerRef, position
         {/* Current viewport indicator - only show when not expanded */}
         {!isExpanded && (
           <div 
-            className="absolute bg-white/40 dark:bg-gray-300/40 w-full backdrop-blur-sm shadow-sm"
+            className={`absolute bg-white/40 dark:bg-gray-300/40 w-full backdrop-blur-sm shadow-sm ${isDragging ? 'cursor-grabbing' : 'cursor-grab'} rounded`}
             style={{
               top: viewportPosition.top,
               height: Math.max(15, viewportPosition.height),
             }}
+            onMouseDown={handleMouseDownOnViewport}
           />
         )}
       </div>

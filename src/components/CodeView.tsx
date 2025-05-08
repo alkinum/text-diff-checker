@@ -66,7 +66,7 @@ const CodeView: React.FC<CodeViewProps> = ({
     return (
       <div 
         ref={scrollRef} // Assign scrollRef here
-        className="flex flex-col w-full relative"
+        className="flex flex-col w-full relative scrollbar-none"
         style={{ 
           maxHeight: !isExpanded ? maxHeight : 'none', 
           overflowY: !isExpanded ? 'auto' : 'visible'
@@ -90,7 +90,7 @@ const CodeView: React.FC<CodeViewProps> = ({
           )}
           <pre 
             ref={horizontalScrollRef}
-            className="p-4 pl-2 m-0 flex-grow overflow-x-auto"
+            className="p-4 pl-2 m-0 flex-grow overflow-x-auto scrollbar-thin"
           >
             <code 
               className={`language-${language} whitespace-pre`}
@@ -174,7 +174,7 @@ const CodeView: React.FC<CodeViewProps> = ({
   return (
     <div 
       ref={scrollRef}
-      className="flex flex-col w-full"
+      className="flex flex-col w-full scrollbar-none"
       style={{ 
         maxHeight: !isExpanded ? maxHeight : 'none', 
         overflowY: !isExpanded ? 'auto' : 'visible' 
@@ -186,7 +186,10 @@ const CodeView: React.FC<CodeViewProps> = ({
         </div>
       )}
       <div className="w-full">
-        <pre ref={codeRef} className="p-4 m-0 w-full overflow-x-auto">
+        <pre 
+          ref={codeRef}
+          className="p-4 m-0 w-full overflow-x-auto scrollbar-thin"
+        >
           <code className={`language-${language} whitespace-pre`}>{content || " "}</code>
         </pre>
       </div>
