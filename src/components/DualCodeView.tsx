@@ -1,4 +1,3 @@
-
 import React, { useRef, useEffect, useState } from 'react';
 import CodeView from '@/components/CodeView';
 import { type FormattedDiff } from '@/utils/diff';
@@ -13,6 +12,8 @@ interface DualCodeViewProps {
   language: string;
 }
 
+const DUAL_CODE_VIEW_MAX_HEIGHT = '70vh';
+
 const DualCodeView: React.FC<DualCodeViewProps> = ({
   leftContent,
   rightContent,
@@ -21,71 +22,88 @@ const DualCodeView: React.FC<DualCodeViewProps> = ({
 }) => {
   const leftScrollRef = useRef<HTMLDivElement>(null);
   const rightScrollRef = useRef<HTMLDivElement>(null);
+  const leftHorizScrollRef = useRef<HTMLPreElement>(null);
+  const rightHorizScrollRef = useRef<HTMLPreElement>(null);
   const [expanded, setExpanded] = useState(false);
-  const [showExpandButton, setShowExpandButton] = useState(true);
-  const [useAutoHeight, setUseAutoHeight] = useState(false);
+  const [showExpandButton, setShowExpandButton] = useState(false);
 
-  // Calculate if content is short enough to hide expand button and use auto height
-  useEffect(() => {
-    const checkContentHeight = () => {
-      if (leftScrollRef.current && rightScrollRef.current) {
-        const leftHeight = leftScrollRef.current.scrollHeight;
-        const rightHeight = rightScrollRef.current.scrollHeight;
-        const maxHeight = Math.max(leftHeight, rightHeight);
-        const viewportHeight = window.innerHeight * 0.7; // 70vh reference
-        
-        // If content height is less than viewport, hide expand button and use auto height
-        const isContentShorterThanViewport = maxHeight <= viewportHeight;
-        setShowExpandButton(!isContentShorterThanViewport);
-        setUseAutoHeight(isContentShorterThanViewport);
-      }
-    };
-    
-    checkContentHeight();
-    window.addEventListener('resize', checkContentHeight);
-    return () => window.removeEventListener('resize', checkContentHeight);
-  }, [diff, leftContent, rightContent]);
-  
   // Set up scroll synchronization
   useEffect(() => {
-    const leftElement = leftScrollRef.current;
-    const rightElement = rightScrollRef.current;
+    const leftVertElement = leftScrollRef.current;
+    const rightVertElement = rightScrollRef.current;
+    const leftHorizElement = leftHorizScrollRef.current;
+    const rightHorizElement = rightHorizScrollRef.current;
     
-    if (!leftElement || !rightElement) return;
+    if (!leftVertElement || !rightVertElement || !leftHorizElement || !rightHorizElement) return;
     
     let isLeftScrolling = false;
     let isRightScrolling = false;
     
     const handleLeftScroll = () => {
-      if (!isRightScrolling && leftElement && rightElement) {
+      if (!isRightScrolling && leftVertElement && rightVertElement && leftHorizElement && rightHorizElement) {
         isLeftScrolling = true;
-        rightElement.scrollTop = leftElement.scrollTop;
-        rightElement.scrollLeft = leftElement.scrollLeft;
+        rightVertElement.scrollTop = leftVertElement.scrollTop;
+        rightHorizElement.scrollLeft = leftHorizElement.scrollLeft;
         setTimeout(() => {
           isLeftScrolling = false;
-        }, 50);
+        }, 20);
       }
     };
     
     const handleRightScroll = () => {
-      if (!isLeftScrolling && leftElement && rightElement) {
+      if (!isLeftScrolling && leftVertElement && rightVertElement && leftHorizElement && rightHorizElement) {
         isRightScrolling = true;
-        leftElement.scrollTop = rightElement.scrollTop;
-        leftElement.scrollLeft = rightElement.scrollLeft;
+        leftVertElement.scrollTop = rightVertElement.scrollTop;
+        leftHorizElement.scrollLeft = rightHorizElement.scrollLeft;
         setTimeout(() => {
           isRightScrolling = false;
-        }, 50);
+        }, 20);
       }
     };
     
-    leftElement.addEventListener('scroll', handleLeftScroll);
-    rightElement.addEventListener('scroll', handleRightScroll);
+    leftVertElement.addEventListener('scroll', handleLeftScroll);
+    leftHorizElement.addEventListener('scroll', handleLeftScroll);
+
+    rightVertElement.addEventListener('scroll', handleRightScroll);
+    rightHorizElement.addEventListener('scroll', handleRightScroll);
     
     return () => {
-      leftElement.removeEventListener('scroll', handleLeftScroll);
-      rightElement.removeEventListener('scroll', handleRightScroll);
+      leftVertElement.removeEventListener('scroll', handleLeftScroll);
+      leftHorizElement.removeEventListener('scroll', handleLeftScroll);
+      rightVertElement.removeEventListener('scroll', handleRightScroll);
+      rightHorizElement.removeEventListener('scroll', handleRightScroll);
     };
   }, []);
+
+  // Check content height to determine if expand button should be shown
+  useEffect(() => {
+    const checkContentHeight = () => {
+      const leftElement = leftScrollRef.current;
+      const rightElement = rightScrollRef.current;
+      
+      let overflows = false;
+      if (leftElement) {
+        // Check if scrollHeight is greater than clientHeight for the left CodeView
+        // clientHeight will be based on DUAL_CODE_VIEW_MAX_HEIGHT when not expanded
+        const leftMaxHeightVh = parseInt(DUAL_CODE_VIEW_MAX_HEIGHT);
+        const leftMaxHeightPx = (leftMaxHeightVh / 100) * window.innerHeight;
+        if (leftElement.scrollHeight > leftMaxHeightPx) {
+          overflows = true;
+        }
+      }
+      if (!overflows && rightElement) {
+        // Check for the right CodeView if left doesn't overflow
+        const rightMaxHeightVh = parseInt(DUAL_CODE_VIEW_MAX_HEIGHT);
+        const rightMaxHeightPx = (rightMaxHeightVh / 100) * window.innerHeight;
+        if (rightElement.scrollHeight > rightMaxHeightPx) {
+          overflows = true;
+        }
+      }
+      setShowExpandButton(overflows || expanded);
+    };
+
+    checkContentHeight();
+  }, [leftContent, rightContent, expanded, diff]);
 
   // Add summary stats for the diff
   const removedCount = diff.left.filter(line => line.removed).length;
@@ -107,15 +125,6 @@ const DualCodeView: React.FC<DualCodeViewProps> = ({
 
   const toggleExpand = () => {
     setExpanded(!expanded);
-    if (!expanded) {
-      // If expanding, scroll to the component
-      setTimeout(() => {
-        const element = document.getElementById('diff-view-container');
-        if (element) {
-          element.scrollIntoView({ behavior: 'smooth' });
-        }
-      }, 100);
-    }
   };
 
   return (
@@ -179,51 +188,49 @@ const DualCodeView: React.FC<DualCodeViewProps> = ({
       <div className="grid grid-cols-2 gap-0 relative">
         <div className="relative border-r">
           <div 
-            ref={leftScrollRef} 
-            className="overflow-auto scrollbar-none"
-            style={{ 
-              maxHeight: useAutoHeight ? 'none' : expanded ? 'none' : '70vh',
-              height: useAutoHeight ? 'auto' : showExpandButton && !expanded ? '70vh' : 'auto'
-            }}
+            className="w-full"
           >
             <CodeView 
+              scrollRef={leftScrollRef}
+              horizontalScrollRef={leftHorizScrollRef}
               content={leftContent} 
               language={language} 
               lines={diff.left}
               title="Original"
               position="left"
+              isExpanded={expanded}
+              maxHeight={DUAL_CODE_VIEW_MAX_HEIGHT}
             />
           </div>
           <DiffMinimap 
             lines={diff.left} 
             containerRef={leftScrollRef}
             position="left"
-            isExpanded={expanded || useAutoHeight}
+            isExpanded={expanded}
           />
         </div>
         
         <div className="relative">
           <div 
-            ref={rightScrollRef} 
-            className="overflow-auto scrollbar-none"
-            style={{ 
-              maxHeight: useAutoHeight ? 'none' : expanded ? 'none' : '70vh',
-              height: useAutoHeight ? 'auto' : showExpandButton && !expanded ? '70vh' : 'auto'
-            }}
+            className="w-full"
           >
             <CodeView 
+              scrollRef={rightScrollRef}
+              horizontalScrollRef={rightHorizScrollRef}
               content={rightContent} 
               language={language} 
               lines={diff.right}
               title="Modified"
               position="right"
+              isExpanded={expanded}
+              maxHeight={DUAL_CODE_VIEW_MAX_HEIGHT}
             />
           </div>
           <DiffMinimap 
             lines={diff.right} 
             containerRef={rightScrollRef}
             position="right"
-            isExpanded={expanded || useAutoHeight}
+            isExpanded={expanded}
           />
         </div>
       </div>

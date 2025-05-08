@@ -1,4 +1,3 @@
-
 import React, { useEffect, useRef } from 'react';
 import Prism from 'prismjs';
 import 'prismjs/components/prism-markup';
@@ -33,7 +32,10 @@ interface CodeViewProps {
   showLineNumbers?: boolean;
   title?: string;
   scrollRef?: React.RefObject<HTMLDivElement>;
+  horizontalScrollRef?: React.RefObject<HTMLPreElement>;
   position?: 'left' | 'right'; // To determine if it's the left or right view
+  isExpanded?: boolean; // Added to control expansion
+  maxHeight?: string; // Added to control max height
 }
 
 const LINE_HEIGHT = 'h-6'; // Consistent line height class
@@ -44,7 +46,11 @@ const CodeView: React.FC<CodeViewProps> = ({
   lines, 
   showLineNumbers = true,
   title,
-  position = 'left' // Default to left position
+  position = 'left', // Default to left position
+  isExpanded = false, // Default to not expanded
+  maxHeight = '70vh', // Default max height
+  scrollRef,
+  horizontalScrollRef
 }) => {
   const codeRef = useRef<HTMLPreElement>(null);
 
@@ -58,24 +64,38 @@ const CodeView: React.FC<CodeViewProps> = ({
   // If we have line-by-line diff data
   if (lines && lines.length > 0) {
     return (
-      <div className="flex flex-col w-full relative">
+      <div 
+        ref={scrollRef} // Assign scrollRef here
+        className="flex flex-col w-full relative"
+        style={{ 
+          maxHeight: !isExpanded ? maxHeight : 'none', 
+          overflowY: !isExpanded ? 'auto' : 'visible'
+        }}
+      >
         {title && (
           <div className="px-4 py-2 font-medium text-sm bg-slate-100 dark:bg-slate-800/95 border-b sticky top-0 z-20">
             {title}
           </div>
         )}
-        <div className="flex min-w-full overflow-x-auto">
+        <div className="flex">
           {showLineNumbers && (
-            <div className="text-right pr-4 py-4 bg-slate-100 dark:bg-slate-800/95 text-muted-foreground select-none min-w-[3rem] sticky left-0 z-10 border-r border-border/50">
+            <div className="line-numbers-container py-4 bg-slate-100 dark:bg-slate-800/95 sticky left-0 z-10 border-r border-border/50" 
+                 style={{ minWidth: "48px", borderRight: "1px solid var(--border)" }}>
               {lines.map((line, i) => (
-                <div key={i} className={`text-xs ${LINE_HEIGHT} leading-6 px-2 ${line.spacer ? 'text-transparent' : ''}`}>
+                <div key={i} className={`leading-6 ${LINE_HEIGHT} px-2 text-xs text-right text-muted-foreground ${line.spacer ? 'text-transparent' : ''}`}>
                   {line.spacer ? '\u00A0' : line.lineNumber}
                 </div>
               ))}
             </div>
           )}
-          <pre className="p-4 overflow-visible w-full m-0">
-            <code className={`language-${language} whitespace-pre`}>
+          <pre 
+            ref={horizontalScrollRef}
+            className="p-4 pl-2 m-0 flex-grow overflow-x-auto"
+          >
+            <code 
+              className={`language-${language} whitespace-pre`}
+              style={{ display: 'table', width: 'max-content', minWidth: '100%' }}
+            >
               {lines.map((line, i) => {
                 // Handle spacer lines
                 if (line.spacer) {
@@ -152,13 +172,20 @@ const CodeView: React.FC<CodeViewProps> = ({
 
   // Standard syntax highlighted view
   return (
-    <div className="flex flex-col w-full">
+    <div 
+      ref={scrollRef}
+      className="flex flex-col w-full"
+      style={{ 
+        maxHeight: !isExpanded ? maxHeight : 'none', 
+        overflowY: !isExpanded ? 'auto' : 'visible' 
+      }}
+    >
       {title && (
         <div className="px-4 py-2 font-medium text-sm bg-slate-100 dark:bg-slate-800/95 border-b sticky top-0 z-20">
           {title}
         </div>
       )}
-      <div className="w-full overflow-auto">
+      <div className="w-full">
         <pre ref={codeRef} className="p-4 m-0 w-full overflow-x-auto">
           <code className={`language-${language} whitespace-pre`}>{content || " "}</code>
         </pre>
