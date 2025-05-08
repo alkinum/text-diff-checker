@@ -1,3 +1,4 @@
+
 import React, { useRef, useEffect } from 'react';
 import CodeView from '@/components/CodeView';
 import { type FormattedDiff } from '@/utils/diff';
@@ -76,7 +77,7 @@ const DualCodeView: React.FC<DualCodeViewProps> = ({
   };
 
   return (
-    <div className="flex flex-col h-[600px] bg-background border rounded-md shadow-sm overflow-hidden">
+    <div className="flex flex-col bg-background border rounded-md shadow-sm overflow-hidden">
       {/* Summary header */}
       <div className="flex justify-between items-center text-sm p-2 border-b bg-slate-50 dark:bg-slate-900">
         <div className="flex items-center">
@@ -108,11 +109,12 @@ const DualCodeView: React.FC<DualCodeViewProps> = ({
       </div>
       
       {/* Diff view */}
-      <div className="grid grid-cols-2 gap-0 flex-1 relative">
-        <div className="h-full relative border-r">
+      <div className="grid grid-cols-2 gap-0 relative">
+        <div className="relative border-r">
           <div 
             ref={leftScrollRef} 
-            className="h-full overflow-auto"
+            className="overflow-auto"
+            style={{ maxHeight: '70vh' }}
           >
             <CodeView 
               content={leftContent} 
@@ -129,10 +131,11 @@ const DualCodeView: React.FC<DualCodeViewProps> = ({
           />
         </div>
         
-        <div className="h-full relative">
+        <div className="relative">
           <div 
             ref={rightScrollRef} 
-            className="h-full overflow-auto"
+            className="overflow-auto"
+            style={{ maxHeight: '70vh' }}
           >
             <CodeView 
               content={rightContent} 

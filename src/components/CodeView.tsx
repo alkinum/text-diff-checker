@@ -58,13 +58,13 @@ const CodeView: React.FC<CodeViewProps> = ({
   // If we have line-by-line diff data
   if (lines && lines.length > 0) {
     return (
-      <div className="h-full flex flex-col">
+      <div className="flex flex-col w-full">
         {title && (
           <div className="px-4 py-2 font-medium text-sm bg-card border-b sticky top-0 z-10">
             {title}
           </div>
         )}
-        <div className="flex flex-1 min-w-full overflow-hidden">
+        <div className="flex min-w-full overflow-x-auto">
           {showLineNumbers && (
             <div className="text-right pr-4 py-4 bg-muted/20 text-muted-foreground select-none min-w-[3rem] sticky left-0 z-10 border-r border-border/50">
               {lines.map((line, i) => (
@@ -74,8 +74,8 @@ const CodeView: React.FC<CodeViewProps> = ({
               ))}
             </div>
           )}
-          <pre className="p-4 overflow-visible flex-1 m-0">
-            <code className={`language-${language}`}>
+          <pre className="p-4 overflow-visible w-full m-0">
+            <code className={`language-${language} whitespace-pre`}>
               {lines.map((line, i) => {
                 // Handle spacer lines
                 if (line.spacer) {
@@ -152,15 +152,15 @@ const CodeView: React.FC<CodeViewProps> = ({
 
   // Standard syntax highlighted view
   return (
-    <div className="h-full flex flex-col">
+    <div className="flex flex-col w-full">
       {title && (
         <div className="px-4 py-2 font-medium text-sm bg-card border-b sticky top-0">
           {title}
         </div>
       )}
-      <div className="flex-1 overflow-auto">
-        <pre ref={codeRef} className="p-4 m-0">
-          <code className={`language-${language}`}>{content || " "}</code>
+      <div className="w-full overflow-auto">
+        <pre ref={codeRef} className="p-4 m-0 w-full overflow-x-auto">
+          <code className={`language-${language} whitespace-pre`}>{content || " "}</code>
         </pre>
       </div>
     </div>
