@@ -23,8 +23,9 @@ const DualCodeView: React.FC<DualCodeViewProps> = ({
   const rightScrollRef = useRef<HTMLDivElement>(null);
   const [expanded, setExpanded] = useState(false);
   const [showExpandButton, setShowExpandButton] = useState(true);
+  const [useAutoHeight, setUseAutoHeight] = useState(false);
 
-  // Calculate if content is short enough to hide expand button
+  // Calculate if content is short enough to hide expand button and use auto height
   useEffect(() => {
     const checkContentHeight = () => {
       if (leftScrollRef.current && rightScrollRef.current) {
@@ -33,8 +34,10 @@ const DualCodeView: React.FC<DualCodeViewProps> = ({
         const maxHeight = Math.max(leftHeight, rightHeight);
         const viewportHeight = window.innerHeight * 0.7; // 70vh reference
         
-        // If content height is less than viewport, hide expand button
-        setShowExpandButton(maxHeight > viewportHeight);
+        // If content height is less than viewport, hide expand button and use auto height
+        const isContentShorterThanViewport = maxHeight <= viewportHeight;
+        setShowExpandButton(!isContentShorterThanViewport);
+        setUseAutoHeight(isContentShorterThanViewport);
       }
     };
     
@@ -90,6 +93,10 @@ const DualCodeView: React.FC<DualCodeViewProps> = ({
   const leftLinesCount = diff.left.filter(line => !line.spacer).length;
   const rightLinesCount = diff.right.filter(line => !line.spacer).length;
 
+  // Determine if we should show the indicators
+  const showRemovedIndicator = removedCount > 0;
+  const showAddedIndicator = addedCount > 0;
+
   const copyLeftContent = () => {
     navigator.clipboard.writeText(leftContent);
   };
@@ -116,9 +123,11 @@ const DualCodeView: React.FC<DualCodeViewProps> = ({
       {/* Summary header */}
       <div className="flex justify-between items-center text-sm p-2 border-b bg-slate-100 dark:bg-slate-800/95 sticky top-0 z-30">
         <div className="flex items-center">
-          <span className="inline-flex items-center bg-diff-removed-bg text-diff-removed-text px-3 py-1 rounded-full mr-2 font-medium">
-            <span className="mr-1">-</span> {removedCount} {removedCount === 1 ? 'removal' : 'removals'}
-          </span>
+          {showRemovedIndicator && (
+            <span className="inline-flex items-center bg-diff-removed-bg text-diff-removed-text px-3 py-1 rounded-full mr-2 font-medium">
+              <span className="mr-1">-</span> {removedCount} {removedCount === 1 ? 'removal' : 'removals'}
+            </span>
+          )}
           <span className="text-muted-foreground">{leftLinesCount} {leftLinesCount === 1 ? 'line' : 'lines'}</span>
           <button 
             onClick={copyLeftContent} 
@@ -149,9 +158,11 @@ const DualCodeView: React.FC<DualCodeViewProps> = ({
             </Button>
           )}
           <div className="flex items-center">
-            <span className="inline-flex items-center bg-diff-added-bg text-diff-added-text px-3 py-1 rounded-full mr-2 font-medium">
-              <span className="mr-1">+</span> {addedCount} {addedCount === 1 ? 'addition' : 'additions'}
-            </span>
+            {showAddedIndicator && (
+              <span className="inline-flex items-center bg-diff-added-bg text-diff-added-text px-3 py-1 rounded-full mr-2 font-medium">
+                <span className="mr-1">+</span> {addedCount} {addedCount === 1 ? 'addition' : 'additions'}
+              </span>
+            )}
             <span className="text-muted-foreground">{rightLinesCount} {rightLinesCount === 1 ? 'line' : 'lines'}</span>
             <button 
               onClick={copyRightContent} 
@@ -171,8 +182,8 @@ const DualCodeView: React.FC<DualCodeViewProps> = ({
             ref={leftScrollRef} 
             className="overflow-auto scrollbar-none"
             style={{ 
-              maxHeight: expanded ? 'none' : '70vh',
-              height: showExpandButton && !expanded ? '70vh' : 'auto'
+              maxHeight: useAutoHeight ? 'none' : expanded ? 'none' : '70vh',
+              height: useAutoHeight ? 'auto' : showExpandButton && !expanded ? '70vh' : 'auto'
             }}
           >
             <CodeView 
@@ -187,7 +198,7 @@ const DualCodeView: React.FC<DualCodeViewProps> = ({
             lines={diff.left} 
             containerRef={leftScrollRef}
             position="left"
-            isExpanded={expanded || !showExpandButton}
+            isExpanded={expanded || useAutoHeight}
           />
         </div>
         
@@ -196,8 +207,8 @@ const DualCodeView: React.FC<DualCodeViewProps> = ({
             ref={rightScrollRef} 
             className="overflow-auto scrollbar-none"
             style={{ 
-              maxHeight: expanded ? 'none' : '70vh',
-              height: showExpandButton && !expanded ? '70vh' : 'auto'
+              maxHeight: useAutoHeight ? 'none' : expanded ? 'none' : '70vh',
+              height: useAutoHeight ? 'auto' : showExpandButton && !expanded ? '70vh' : 'auto'
             }}
           >
             <CodeView 
@@ -212,7 +223,7 @@ const DualCodeView: React.FC<DualCodeViewProps> = ({
             lines={diff.right} 
             containerRef={rightScrollRef}
             position="right"
-            isExpanded={expanded || !showExpandButton}
+            isExpanded={expanded || useAutoHeight}
           />
         </div>
       </div>
