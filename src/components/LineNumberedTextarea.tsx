@@ -56,7 +56,7 @@ const LineNumberedTextarea: React.FC<LineNumberedTextareaProps> = ({
       <div 
         ref={lineNumbersRef} 
         className="line-numbers bg-slate-100 dark:bg-slate-800/95" 
-        style={{ minHeight }}
+        style={{ minHeight, zIndex: 10 }}
       >
         {lineNumbers.map((num, i) => (
           <div key={i} className="leading-6 h-6 px-2">
@@ -74,7 +74,7 @@ const LineNumberedTextarea: React.FC<LineNumberedTextareaProps> = ({
         onScroll={handleScroll}
         placeholder={placeholder}
         className={`line-numbered-textarea min-h-[${minHeight}] font-mono text-sm bg-background/50 backdrop-blur-sm border-border/50 focus:border-primary/50 transition-all duration-200 focus:ring-1 focus:ring-primary/30 ${className}`}
-        style={{ minHeight, lineHeight: "1.5rem" }}
+        style={{ minHeight, lineHeight: "1.5rem", position: "relative", zIndex: 5 }}
       />
     </div>
   );

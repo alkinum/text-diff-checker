@@ -94,7 +94,7 @@ const DualCodeView: React.FC<DualCodeViewProps> = ({
   return (
     <div id="diff-view-container" className="flex flex-col bg-background border rounded-md shadow-sm overflow-hidden">
       {/* Summary header */}
-      <div className="flex justify-between items-center text-sm p-2 border-b bg-slate-100 dark:bg-slate-800/95 sticky top-0 z-20">
+      <div className="flex justify-between items-center text-sm p-2 border-b bg-slate-100 dark:bg-slate-800/95 sticky top-0 z-30">
         <div className="flex items-center">
           <span className="inline-flex items-center bg-diff-removed-bg text-diff-removed-text px-3 py-1 rounded-full mr-2 font-medium">
             <span className="mr-1">-</span> {removedCount} {removedCount === 1 ? 'removal' : 'removals'}
