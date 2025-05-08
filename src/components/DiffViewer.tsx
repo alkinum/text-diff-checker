@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -15,8 +16,8 @@ const DiffViewer: React.FC = () => {
   const [language, setLanguage] = useState("plaintext");
   const { toast } = useToast();
   
-  const leftTextareaContainerRef = useRef<HTMLDivElement>(null);
-  const rightTextareaContainerRef = useRef<HTMLDivElement>(null);
+  const leftScrollRef = useRef<HTMLDivElement>(null);
+  const rightScrollRef = useRef<HTMLDivElement>(null);
 
   // Detect language when text changes
   useEffect(() => {
@@ -51,27 +52,17 @@ const DiffViewer: React.FC = () => {
 
   // Function to synchronize left textarea scroll to right
   const handleLeftScroll = () => {
-    if (rightTextareaContainerRef.current && leftTextareaContainerRef.current) {
-      const leftScrollContainer = leftTextareaContainerRef.current.querySelector('.flex.w-full.overflow-auto');
-      const rightScrollContainer = rightTextareaContainerRef.current.querySelector('.flex.w-full.overflow-auto');
-      
-      if (leftScrollContainer && rightScrollContainer) {
-        rightScrollContainer.scrollTop = leftScrollContainer.scrollTop;
-        rightScrollContainer.scrollLeft = leftScrollContainer.scrollLeft;
-      }
+    if (rightScrollRef.current && leftScrollRef.current) {
+      rightScrollRef.current.scrollTop = leftScrollRef.current.scrollTop;
+      rightScrollRef.current.scrollLeft = leftScrollRef.current.scrollLeft;
     }
   };
 
   // Function to synchronize right textarea scroll to left
   const handleRightScroll = () => {
-    if (leftTextareaContainerRef.current && rightTextareaContainerRef.current) {
-      const leftScrollContainer = leftTextareaContainerRef.current.querySelector('.flex.w-full.overflow-auto');
-      const rightScrollContainer = rightTextareaContainerRef.current.querySelector('.flex.w-full.overflow-auto');
-      
-      if (leftScrollContainer && rightScrollContainer) {
-        leftScrollContainer.scrollTop = rightScrollContainer.scrollTop;
-        leftScrollContainer.scrollLeft = rightScrollContainer.scrollLeft;
-      }
+    if (leftScrollRef.current && rightScrollRef.current) {
+      leftScrollRef.current.scrollTop = rightScrollRef.current.scrollTop;
+      leftScrollRef.current.scrollLeft = rightScrollRef.current.scrollLeft;
     }
   };
 
@@ -134,17 +125,16 @@ const DiffViewer: React.FC = () => {
                 onLanguageChange={setLanguage}
               />
             </div>
-            <div ref={leftTextareaContainerRef} className="w-full">
-              <LineNumberedTextarea
-                id="original"
-                placeholder="Paste original text here..."
-                value={leftText}
-                onChange={(e) => setLeftText(e.target.value)}
-                minHeight="300px"
-                onScroll={handleLeftScroll}
-                className="w-full"
-              />
-            </div>
+            <LineNumberedTextarea
+              id="original"
+              placeholder="Paste original text here..."
+              value={leftText}
+              onChange={(e) => setLeftText(e.target.value)}
+              minHeight="300px"
+              onScroll={handleLeftScroll}
+              scrollRef={leftScrollRef}
+              className="w-full"
+            />
           </div>
 
           <div className="space-y-4 glass-card rounded-xl p-5 transition-all duration-300 hover:shadow-xl w-full">
@@ -155,17 +145,16 @@ const DiffViewer: React.FC = () => {
                 onLanguageChange={setLanguage}
               />
             </div>
-            <div ref={rightTextareaContainerRef} className="w-full">
-              <LineNumberedTextarea
-                id="modified"
-                placeholder="Paste modified text here..."
-                value={rightText}
-                onChange={(e) => setRightText(e.target.value)}
-                minHeight="300px"
-                onScroll={handleRightScroll}
-                className="w-full"
-              />
-            </div>
+            <LineNumberedTextarea
+              id="modified"
+              placeholder="Paste modified text here..."
+              value={rightText}
+              onChange={(e) => setRightText(e.target.value)}
+              minHeight="300px"
+              onScroll={handleRightScroll}
+              scrollRef={rightScrollRef}
+              className="w-full"
+            />
           </div>
         </div>
       </div>

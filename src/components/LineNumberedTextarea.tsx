@@ -26,8 +26,7 @@ const LineNumberedTextarea: React.FC<LineNumberedTextareaProps> = ({
   const [lineNumbers, setLineNumbers] = useState<string[]>([]);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const lineNumbersRef = useRef<HTMLDivElement>(null);
-  const wrapperRef = useRef<HTMLDivElement>(null);
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   // Calculate line numbers whenever text changes
   useEffect(() => {
@@ -37,30 +36,46 @@ const LineNumberedTextarea: React.FC<LineNumberedTextareaProps> = ({
   }, [value]);
 
   // Handle scroll synchronization
-  const handleScroll = () => {
-    if (textareaRef.current && lineNumbersRef.current && scrollContainerRef.current) {
+  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    if (textareaRef.current && lineNumbersRef.current && containerRef.current) {
+      // Since both elements are in the same scrollable container, they will scroll together
       if (onScroll) {
         onScroll();
       }
     }
   };
 
+  // Function to auto-resize the textarea
+  const adjustTextareaHeight = () => {
+    if (textareaRef.current) {
+      // Reset the height first to get the correct scrollHeight
+      textareaRef.current.style.height = 'auto';
+      // Set the height to the scrollHeight to fit the content
+      textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
+    }
+  };
+
+  // Adjust height on content change
+  useEffect(() => {
+    adjustTextareaHeight();
+  }, [value]);
+
   return (
     <div 
-      className="line-numbered-wrapper w-full overflow-hidden border rounded-md hover:border-primary/50 transition-all duration-200"
+      className="line-numbered-wrapper w-full border rounded-md hover:border-primary/50 transition-all duration-200"
       style={{ minHeight }}
-      ref={wrapperRef}
+      ref={scrollRef}
     >
       <div 
-        ref={scrollContainerRef}
+        ref={containerRef}
         className="flex w-full overflow-auto"
         style={{ maxHeight: minHeight }}
+        onScroll={handleScroll}
       >
         <div 
           ref={lineNumbersRef} 
-          className="line-numbers-container bg-slate-100 dark:bg-slate-800/95 sticky left-0"
+          className="line-numbers-container bg-slate-100 dark:bg-slate-800/95 sticky left-0 py-2"
           style={{ 
-            minHeight,
             zIndex: 10,
             borderRight: "1px solid var(--border)",
             minWidth: "48px"
@@ -75,22 +90,27 @@ const LineNumberedTextarea: React.FC<LineNumberedTextareaProps> = ({
           <div className="leading-6 h-6 px-2 text-xs text-right text-muted-foreground">{(lineNumbers.length + 1).toString()}</div>
         </div>
         
-        <Textarea
-          ref={textareaRef}
-          id={id}
-          value={value}
-          onChange={onChange}
-          onScroll={handleScroll}
-          placeholder={placeholder}
-          className={`line-numbered-textarea min-h-[${minHeight}] font-mono text-sm bg-background/50 backdrop-blur-sm border-none focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 w-full ${className}`}
-          style={{ 
-            minHeight, 
-            lineHeight: "1.5rem", 
-            paddingLeft: "8px",
-            whiteSpace: "pre",
-            resize: "none"
-          }}
-        />
+        <div className="w-full py-2">
+          <Textarea
+            ref={textareaRef}
+            id={id}
+            value={value}
+            onChange={(e) => {
+              onChange(e);
+              // We'll adjust height after the value changes through the useEffect
+            }}
+            placeholder={placeholder}
+            className={`line-numbered-textarea border-none focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 w-full font-mono text-sm p-0 bg-transparent overflow-hidden ${className}`}
+            style={{ 
+              lineHeight: "1.5rem", 
+              paddingLeft: "8px",
+              whiteSpace: "pre",
+              resize: "none",
+              minHeight: "auto", // Let the content dictate the height
+              height: "auto", // Will be set dynamically
+            }}
+          />
+        </div>
       </div>
     </div>
   );
