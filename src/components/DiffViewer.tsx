@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -53,12 +52,12 @@ const DiffViewer: React.FC = () => {
   // Function to synchronize left textarea scroll to right
   const handleLeftScroll = () => {
     if (rightTextareaContainerRef.current && leftTextareaContainerRef.current) {
-      const leftTextarea = leftTextareaContainerRef.current.querySelector('textarea');
-      const rightTextarea = rightTextareaContainerRef.current.querySelector('textarea');
+      const leftScrollContainer = leftTextareaContainerRef.current.querySelector('.flex.w-full.overflow-auto');
+      const rightScrollContainer = rightTextareaContainerRef.current.querySelector('.flex.w-full.overflow-auto');
       
-      if (leftTextarea && rightTextarea) {
-        rightTextarea.scrollTop = leftTextarea.scrollTop;
-        rightTextarea.scrollLeft = leftTextarea.scrollLeft;
+      if (leftScrollContainer && rightScrollContainer) {
+        rightScrollContainer.scrollTop = leftScrollContainer.scrollTop;
+        rightScrollContainer.scrollLeft = leftScrollContainer.scrollLeft;
       }
     }
   };
@@ -66,12 +65,12 @@ const DiffViewer: React.FC = () => {
   // Function to synchronize right textarea scroll to left
   const handleRightScroll = () => {
     if (leftTextareaContainerRef.current && rightTextareaContainerRef.current) {
-      const leftTextarea = leftTextareaContainerRef.current.querySelector('textarea');
-      const rightTextarea = rightTextareaContainerRef.current.querySelector('textarea');
+      const leftScrollContainer = leftTextareaContainerRef.current.querySelector('.flex.w-full.overflow-auto');
+      const rightScrollContainer = rightTextareaContainerRef.current.querySelector('.flex.w-full.overflow-auto');
       
-      if (leftTextarea && rightTextarea) {
-        leftTextarea.scrollTop = rightTextarea.scrollTop;
-        leftTextarea.scrollLeft = rightTextarea.scrollLeft;
+      if (leftScrollContainer && rightScrollContainer) {
+        leftScrollContainer.scrollTop = rightScrollContainer.scrollTop;
+        leftScrollContainer.scrollLeft = rightScrollContainer.scrollLeft;
       }
     }
   };
