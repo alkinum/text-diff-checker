@@ -105,15 +105,47 @@ const DualCodeView: React.FC<DualCodeViewProps> = ({
     checkContentHeight();
   }, [leftContent, rightContent, expanded, diff]);
 
-  // Add summary stats for the diff
-  const removedCount = diff.left.filter(line => line.removed).length;
-  const addedCount = diff.right.filter(line => line.added).length;
-  const leftLinesCount = diff.left.filter(line => !line.spacer).length;
-  const rightLinesCount = diff.right.filter(line => !line.spacer).length;
+  // Calculate accurate diff statistics
+  const calculateStats = () => {
+    // Only count real lines (not spacers)
+    const realLeftLines = diff.left.filter(line => !line.spacer);
+    const realRightLines = diff.right.filter(line => !line.spacer);
 
+    // Get removed lines from left side
+    const removedCount = realLeftLines.filter(line => line.removed && !line.modified).length;
+    
+    // Get modified lines (count only once)
+    const modifiedCount = realLeftLines.filter(line => line.modified).length;
+    
+    // Get added lines from right side (excluding those that are marked as modified)
+    const addedCount = realRightLines.filter(line => line.added && !line.modified).length;
+    
+    // Total lines in each side (excluding spacers)
+    const leftLinesCount = realLeftLines.length;
+    const rightLinesCount = realRightLines.length;
+    
+    // Calculate the maximum total lines for minimap consistency
+    const maxTotalLines = Math.max(leftLinesCount, rightLinesCount);
+    
+    return {
+      removedCount,
+      addedCount,
+      modifiedCount,
+      leftLinesCount,
+      rightLinesCount,
+      maxTotalLines
+    };
+  };
+
+  const stats = calculateStats();
+  
   // Determine if we should show the indicators
-  const showRemovedIndicator = removedCount > 0;
-  const showAddedIndicator = addedCount > 0;
+  const showRemovedIndicator = stats.removedCount > 0 || stats.modifiedCount > 0;
+  const showAddedIndicator = stats.addedCount > 0 || stats.modifiedCount > 0;
+  
+  // For display purposes, include modified lines in both counts
+  const displayRemovedCount = stats.removedCount + stats.modifiedCount;
+  const displayAddedCount = stats.addedCount + stats.modifiedCount;
 
   const copyLeftContent = () => {
     navigator.clipboard.writeText(leftContent);
@@ -134,10 +166,10 @@ const DualCodeView: React.FC<DualCodeViewProps> = ({
         <div className="flex items-center">
           {showRemovedIndicator && (
             <span className="inline-flex items-center bg-diff-removed-bg text-diff-removed-text px-3 py-1 rounded-full mr-2 font-medium">
-              <span className="mr-1">-</span> {removedCount} {removedCount === 1 ? 'removal' : 'removals'}
+              <span className="mr-1">-</span> {displayRemovedCount} {displayRemovedCount === 1 ? 'removal' : 'removals'}
             </span>
           )}
-          <span className="text-muted-foreground">{leftLinesCount} {leftLinesCount === 1 ? 'line' : 'lines'}</span>
+          <span className="text-muted-foreground">{stats.leftLinesCount} {stats.leftLinesCount === 1 ? 'line' : 'lines'}</span>
           <button 
             onClick={copyLeftContent} 
             className="ml-2 p-1 text-muted-foreground hover:text-foreground flex items-center"
@@ -169,10 +201,10 @@ const DualCodeView: React.FC<DualCodeViewProps> = ({
           <div className="flex items-center">
             {showAddedIndicator && (
               <span className="inline-flex items-center bg-diff-added-bg text-diff-added-text px-3 py-1 rounded-full mr-2 font-medium">
-                <span className="mr-1">+</span> {addedCount} {addedCount === 1 ? 'addition' : 'additions'}
+                <span className="mr-1">+</span> {displayAddedCount} {displayAddedCount === 1 ? 'addition' : 'additions'}
               </span>
             )}
-            <span className="text-muted-foreground">{rightLinesCount} {rightLinesCount === 1 ? 'line' : 'lines'}</span>
+            <span className="text-muted-foreground">{stats.rightLinesCount} {stats.rightLinesCount === 1 ? 'line' : 'lines'}</span>
             <button 
               onClick={copyRightContent} 
               className="ml-2 p-1 text-muted-foreground hover:text-foreground flex items-center"
@@ -207,6 +239,7 @@ const DualCodeView: React.FC<DualCodeViewProps> = ({
             containerRef={leftScrollRef}
             position="left"
             isExpanded={expanded}
+            maxTotalLines={stats.maxTotalLines}
           />
         </div>
         
@@ -231,6 +264,7 @@ const DualCodeView: React.FC<DualCodeViewProps> = ({
             containerRef={rightScrollRef}
             position="right"
             isExpanded={expanded}
+            maxTotalLines={stats.maxTotalLines}
           />
         </div>
       </div>
