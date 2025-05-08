@@ -8,7 +8,7 @@ interface LineNumberedTextareaProps {
   placeholder?: string;
   id?: string;
   className?: string;
-  minHeight?: string;
+  height?: string;
   onScroll?: () => void;
   scrollRef?: React.RefObject<HTMLDivElement>;
 }
@@ -19,7 +19,7 @@ const LineNumberedTextarea: React.FC<LineNumberedTextareaProps> = ({
   placeholder,
   id,
   className,
-  minHeight = "300px",
+  height = "300px",
   onScroll,
   scrollRef,
 }) => {
@@ -33,26 +33,7 @@ const LineNumberedTextarea: React.FC<LineNumberedTextareaProps> = ({
     const lines = (value || "").split("\n");
     const numbers = lines.map((_, i) => (i + 1).toString());
     setLineNumbers(numbers);
-    
-    // Adjust height after line numbers update
-    adjustTextareaHeight();
   }, [value]);
-  
-  // Function to auto-resize the textarea
-  const adjustTextareaHeight = () => {
-    if (textareaRef.current) {
-      // Reset the height first to get the correct scrollHeight
-      textareaRef.current.style.height = 'auto';
-      // Set the height to the scrollHeight to fit the content
-      const newHeight = `${textareaRef.current.scrollHeight}px`;
-      textareaRef.current.style.height = newHeight;
-      
-      // Also update the line numbers container height to match
-      if (lineNumbersRef.current) {
-        lineNumbersRef.current.style.height = newHeight;
-      }
-    }
-  };
 
   // Handle scroll synchronization
   const handleScroll = () => {
@@ -79,12 +60,12 @@ const LineNumberedTextarea: React.FC<LineNumberedTextareaProps> = ({
   return (
     <div 
       className="line-numbered-wrapper w-full border rounded-md hover:border-primary/50 transition-all duration-200"
-      style={{ minHeight }}
+      style={{ height }}
       ref={scrollRef}
     >
       <div 
         ref={containerRef}
-        className="flex w-full relative"
+        className="flex w-full h-full relative"
       >
         <div 
           ref={lineNumbersRef} 
@@ -105,25 +86,20 @@ const LineNumberedTextarea: React.FC<LineNumberedTextareaProps> = ({
           <div className="leading-6 h-6 px-2 text-xs text-right text-muted-foreground">{(lineNumbers.length + 1).toString()}</div>
         </div>
         
-        <div className="w-full pl-12 py-2">
+        <div className="w-full h-full pl-12 py-2">
           <Textarea
             ref={textareaRef}
             id={id}
             value={value}
-            onChange={(e) => {
-              onChange(e);
-              // We'll adjust height after the value changes through the useEffect
-            }}
+            onChange={onChange}
             onScroll={handleScroll}
             placeholder={placeholder}
-            className={`line-numbered-textarea border-none focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 w-full font-mono text-sm p-0 bg-transparent overflow-hidden ${className}`}
+            className={`line-numbered-textarea border-none focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 w-full h-full font-mono text-sm p-0 bg-transparent overflow-auto ${className}`}
             style={{ 
               lineHeight: "1.5rem", 
               paddingLeft: "8px",
               whiteSpace: "pre",
               resize: "none",
-              minHeight: "auto", // Let the content dictate the height
-              height: "auto", // Will be set dynamically
             }}
           />
         </div>

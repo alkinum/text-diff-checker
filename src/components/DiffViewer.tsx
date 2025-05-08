@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -17,6 +18,9 @@ const DiffViewer: React.FC = () => {
   
   const leftScrollRef = useRef<HTMLDivElement>(null);
   const rightScrollRef = useRef<HTMLDivElement>(null);
+  
+  // Fixed height for both textareas
+  const textareaHeight = "300px";
 
   // Detect language when text changes
   useEffect(() => {
@@ -111,7 +115,7 @@ const DiffViewer: React.FC = () => {
           </div>
         </div>
 
-        {/* Text Input View with Line Numbers */}
+        {/* Text Input View with Line Numbers - now with fixed height containers */}
         <div className="grid md:grid-cols-2 gap-8">
           <div className="space-y-4 glass-card rounded-xl p-5 transition-all duration-300 hover:shadow-xl w-full">
             <div className="flex justify-between items-center">
@@ -126,7 +130,7 @@ const DiffViewer: React.FC = () => {
               placeholder="Paste original text here..."
               value={leftText}
               onChange={(e) => setLeftText(e.target.value)}
-              minHeight="300px"
+              height={textareaHeight}
               onScroll={handleLeftScroll}
               scrollRef={leftScrollRef}
               className="w-full"
@@ -146,7 +150,7 @@ const DiffViewer: React.FC = () => {
               placeholder="Paste modified text here..."
               value={rightText}
               onChange={(e) => setRightText(e.target.value)}
-              minHeight="300px"
+              height={textareaHeight}
               onScroll={handleRightScroll}
               scrollRef={rightScrollRef}
               className="w-full"
