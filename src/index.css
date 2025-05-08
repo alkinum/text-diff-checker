@@ -135,14 +135,15 @@
     @apply relative overflow-hidden rounded-md flex flex-1;
   }
 
-  .line-numbers {
-    @apply absolute left-0 top-0 bottom-0 pt-2 pb-2 pl-2 text-right text-muted-foreground text-sm font-mono select-none border-r border-border/30 z-10 w-[48px] overflow-hidden;
+  .line-numbers-container {
+    @apply text-right text-muted-foreground text-sm font-mono select-none;
   }
 
   .line-numbered-textarea {
-    @apply pl-[55px] !important;
+    @apply font-mono text-sm;
   }
 
+  /* Line highlighting for both code view and textarea */
   .line-highlight {
     @apply block w-full min-w-fit whitespace-pre h-6 hover:bg-slate-100/50 dark:hover:bg-slate-700/50 transition-colors duration-150;
   }

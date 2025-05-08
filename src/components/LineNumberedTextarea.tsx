@@ -29,6 +29,7 @@ const LineNumberedTextarea: React.FC<LineNumberedTextareaProps> = ({
   const lineNumbersRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   // Calculate line numbers whenever text changes
   useEffect(() => {
@@ -38,10 +39,11 @@ const LineNumberedTextarea: React.FC<LineNumberedTextareaProps> = ({
   }, [value]);
 
   // Sync scroll between line numbers and textarea
-  const handleScroll = () => {
-    if (textareaRef.current && lineNumbersRef.current && wrapperRef.current) {
-      // Synchronize vertical scrolling
+  const handleScroll = (e: React.UIEvent<HTMLTextAreaElement>) => {
+    if (textareaRef.current && lineNumbersRef.current && scrollContainerRef.current) {
+      // Synchronize vertical and horizontal scrolling
       lineNumbersRef.current.scrollTop = textareaRef.current.scrollTop;
+      scrollContainerRef.current.scrollLeft = textareaRef.current.scrollLeft;
       
       if (onScroll) {
         onScroll();
@@ -51,52 +53,62 @@ const LineNumberedTextarea: React.FC<LineNumberedTextareaProps> = ({
 
   return (
     <div 
-      className="line-numbered-wrapper w-full"
+      className="line-numbered-wrapper w-full overflow-hidden"
       style={{ minHeight }}
       ref={containerRef}
     >
-      <div className="relative flex w-full" ref={wrapperRef}>
+      <div 
+        className="relative flex w-full overflow-hidden"
+        ref={scrollContainerRef}
+        style={{ overflowX: 'auto' }}
+      >
         <div 
           ref={lineNumbersRef} 
-          className="line-numbers bg-slate-100 dark:bg-slate-800/95" 
+          className="line-numbers-container bg-slate-100 dark:bg-slate-800/95"
           style={{ 
-            minHeight, 
+            minHeight,
             zIndex: 10,
-            position: "absolute",
+            position: "sticky",
             left: 0,
             top: 0,
             bottom: 0,
-            overflow: "hidden"
+            overflow: "hidden",
+            borderRight: "1px solid var(--border)",
+            minWidth: "48px"
           }}
         >
           {lineNumbers.map((num, i) => (
-            <div key={i} className="leading-6 h-6 px-2">
+            <div key={i} className="leading-6 h-6 px-2 text-xs text-right text-muted-foreground">
               {num}
             </div>
           ))}
           {/* Add one extra line number to ensure there's always space to type on a new line */}
-          <div className="leading-6 h-6 px-2">{(lineNumbers.length + 1).toString()}</div>
+          <div className="leading-6 h-6 px-2 text-xs text-right text-muted-foreground">{(lineNumbers.length + 1).toString()}</div>
         </div>
         
-        <Textarea
-          ref={textareaRef}
-          id={id}
-          value={value}
-          onChange={onChange}
-          onScroll={handleScroll}
-          placeholder={placeholder}
-          className={`line-numbered-textarea min-h-[${minHeight}] font-mono text-sm bg-background/50 backdrop-blur-sm border-border/50 focus:border-primary/50 transition-all duration-200 focus:ring-1 focus:ring-primary/30 w-full ${className}`}
-          style={{ 
-            minHeight, 
-            lineHeight: "1.5rem", 
-            position: "relative", 
-            zIndex: 5,
-            width: "100%",
-            paddingLeft: "55px", // Ensure text doesn't overlap with line numbers
-            whiteSpace: "nowrap", // Prevent text wrapping
-            overflowX: "auto" // Enable horizontal scrolling
-          }}
-        />
+        <div className="relative flex-1 overflow-hidden">
+          <Textarea
+            ref={textareaRef}
+            id={id}
+            value={value}
+            onChange={onChange}
+            onScroll={handleScroll}
+            placeholder={placeholder}
+            className={`line-numbered-textarea min-h-[${minHeight}] font-mono text-sm bg-background/50 backdrop-blur-sm border-border/50 focus:border-primary/50 transition-all duration-200 focus:ring-1 focus:ring-primary/30 w-full ${className}`}
+            style={{ 
+              minHeight, 
+              lineHeight: "1.5rem", 
+              position: "relative", 
+              zIndex: 5,
+              width: "100%",
+              paddingLeft: "8px", // Reduce padding as line numbers are now in a separate container
+              whiteSpace: "pre", 
+              overflowX: "auto", // Enable horizontal scrolling
+              overflowY: "auto", // Keep vertical scrolling
+              resize: "none" // Disable resize since we're controlling it
+            }}
+          />
+        </div>
       </div>
     </div>
   );
