@@ -127,7 +127,7 @@ const DiffViewer: React.FC = () => {
 
         {/* Text Input View with Line Numbers */}
         <div className="grid md:grid-cols-2 gap-8">
-          <div className="space-y-4 glass-card rounded-xl p-5 transition-all duration-300 hover:shadow-xl">
+          <div className="space-y-4 glass-card rounded-xl p-5 transition-all duration-300 hover:shadow-xl w-full">
             <div className="flex justify-between items-center">
               <Label htmlFor="original" className="text-base font-medium">Original Text</Label>
               <FormatSelector 
@@ -135,7 +135,7 @@ const DiffViewer: React.FC = () => {
                 onLanguageChange={setLanguage}
               />
             </div>
-            <div ref={leftTextareaContainerRef}>
+            <div ref={leftTextareaContainerRef} className="w-full">
               <LineNumberedTextarea
                 id="original"
                 placeholder="Paste original text here..."
@@ -143,11 +143,12 @@ const DiffViewer: React.FC = () => {
                 onChange={(e) => setLeftText(e.target.value)}
                 minHeight="300px"
                 onScroll={handleLeftScroll}
+                className="w-full"
               />
             </div>
           </div>
 
-          <div className="space-y-4 glass-card rounded-xl p-5 transition-all duration-300 hover:shadow-xl">
+          <div className="space-y-4 glass-card rounded-xl p-5 transition-all duration-300 hover:shadow-xl w-full">
             <div className="flex justify-between items-center">
               <Label htmlFor="modified" className="text-base font-medium">Modified Text</Label>
               <FormatSelector 
@@ -155,7 +156,7 @@ const DiffViewer: React.FC = () => {
                 onLanguageChange={setLanguage}
               />
             </div>
-            <div ref={rightTextareaContainerRef}>
+            <div ref={rightTextareaContainerRef} className="w-full">
               <LineNumberedTextarea
                 id="modified"
                 placeholder="Paste modified text here..."
@@ -163,6 +164,7 @@ const DiffViewer: React.FC = () => {
                 onChange={(e) => setRightText(e.target.value)}
                 minHeight="300px"
                 onScroll={handleRightScroll}
+                className="w-full"
               />
             </div>
           </div>

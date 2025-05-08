@@ -43,9 +43,6 @@ const LineNumberedTextarea: React.FC<LineNumberedTextareaProps> = ({
       // Synchronize vertical scrolling
       lineNumbersRef.current.scrollTop = textareaRef.current.scrollTop;
       
-      // Synchronize horizontal scrolling
-      lineNumbersRef.current.scrollLeft = textareaRef.current.scrollLeft;
-      
       if (onScroll) {
         onScroll();
       }
@@ -54,11 +51,11 @@ const LineNumberedTextarea: React.FC<LineNumberedTextareaProps> = ({
 
   return (
     <div 
-      className="line-numbered-wrapper" 
-      style={{ minHeight }} 
+      className="line-numbered-wrapper w-full"
+      style={{ minHeight }}
       ref={containerRef}
     >
-      <div className="relative flex" ref={wrapperRef}>
+      <div className="relative flex w-full" ref={wrapperRef}>
         <div 
           ref={lineNumbersRef} 
           className="line-numbers bg-slate-100 dark:bg-slate-800/95" 
@@ -88,14 +85,16 @@ const LineNumberedTextarea: React.FC<LineNumberedTextareaProps> = ({
           onChange={onChange}
           onScroll={handleScroll}
           placeholder={placeholder}
-          className={`line-numbered-textarea min-h-[${minHeight}] font-mono text-sm bg-background/50 backdrop-blur-sm border-border/50 focus:border-primary/50 transition-all duration-200 focus:ring-1 focus:ring-primary/30 ${className}`}
+          className={`line-numbered-textarea min-h-[${minHeight}] font-mono text-sm bg-background/50 backdrop-blur-sm border-border/50 focus:border-primary/50 transition-all duration-200 focus:ring-1 focus:ring-primary/30 w-full ${className}`}
           style={{ 
             minHeight, 
             lineHeight: "1.5rem", 
             position: "relative", 
             zIndex: 5,
             width: "100%",
-            paddingLeft: "55px" // Ensure text doesn't overlap with line numbers
+            paddingLeft: "55px", // Ensure text doesn't overlap with line numbers
+            whiteSpace: "nowrap", // Prevent text wrapping
+            overflowX: "auto" // Enable horizontal scrolling
           }}
         />
       </div>

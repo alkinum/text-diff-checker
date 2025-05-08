@@ -22,6 +22,26 @@ const DualCodeView: React.FC<DualCodeViewProps> = ({
   const leftScrollRef = useRef<HTMLDivElement>(null);
   const rightScrollRef = useRef<HTMLDivElement>(null);
   const [expanded, setExpanded] = useState(false);
+  const [showExpandButton, setShowExpandButton] = useState(true);
+
+  // Calculate if content is short enough to hide expand button
+  useEffect(() => {
+    const checkContentHeight = () => {
+      if (leftScrollRef.current && rightScrollRef.current) {
+        const leftHeight = leftScrollRef.current.scrollHeight;
+        const rightHeight = rightScrollRef.current.scrollHeight;
+        const maxHeight = Math.max(leftHeight, rightHeight);
+        const viewportHeight = window.innerHeight * 0.7; // 70vh reference
+        
+        // If content height is less than viewport, hide expand button
+        setShowExpandButton(maxHeight > viewportHeight);
+      }
+    };
+    
+    checkContentHeight();
+    window.addEventListener('resize', checkContentHeight);
+    return () => window.removeEventListener('resize', checkContentHeight);
+  }, [diff, leftContent, rightContent]);
   
   // Set up scroll synchronization
   useEffect(() => {
@@ -109,23 +129,25 @@ const DualCodeView: React.FC<DualCodeViewProps> = ({
           </button>
         </div>
         <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={toggleExpand}
-            className="flex items-center gap-1"
-            aria-label={expanded ? "Minimize diff view" : "Expand diff view"}
-          >
-            {expanded ? (
-              <>
-                <Minimize className="h-3.5 w-3.5" /> Minimize
-              </>
-            ) : (
-              <>
-                <Maximize className="h-3.5 w-3.5" /> Expand
-              </>
-            )}
-          </Button>
+          {showExpandButton && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={toggleExpand}
+              className="flex items-center gap-1"
+              aria-label={expanded ? "Minimize diff view" : "Expand diff view"}
+            >
+              {expanded ? (
+                <>
+                  <Minimize className="h-3.5 w-3.5" /> Minimize
+                </>
+              ) : (
+                <>
+                  <Maximize className="h-3.5 w-3.5" /> Expand
+                </>
+              )}
+            </Button>
+          )}
           <div className="flex items-center">
             <span className="inline-flex items-center bg-diff-added-bg text-diff-added-text px-3 py-1 rounded-full mr-2 font-medium">
               <span className="mr-1">+</span> {addedCount} {addedCount === 1 ? 'addition' : 'additions'}
@@ -150,7 +172,7 @@ const DualCodeView: React.FC<DualCodeViewProps> = ({
             className="overflow-auto scrollbar-none"
             style={{ 
               maxHeight: expanded ? 'none' : '70vh',
-              height: expanded ? 'auto' : '70vh'
+              height: showExpandButton && !expanded ? '70vh' : 'auto'
             }}
           >
             <CodeView 
@@ -165,7 +187,7 @@ const DualCodeView: React.FC<DualCodeViewProps> = ({
             lines={diff.left} 
             containerRef={leftScrollRef}
             position="left"
-            isExpanded={expanded}
+            isExpanded={expanded || !showExpandButton}
           />
         </div>
         
@@ -175,7 +197,7 @@ const DualCodeView: React.FC<DualCodeViewProps> = ({
             className="overflow-auto scrollbar-none"
             style={{ 
               maxHeight: expanded ? 'none' : '70vh',
-              height: expanded ? 'auto' : '70vh'
+              height: showExpandButton && !expanded ? '70vh' : 'auto'
             }}
           >
             <CodeView 
@@ -190,7 +212,7 @@ const DualCodeView: React.FC<DualCodeViewProps> = ({
             lines={diff.right} 
             containerRef={rightScrollRef}
             position="right"
-            isExpanded={expanded}
+            isExpanded={expanded || !showExpandButton}
           />
         </div>
       </div>
