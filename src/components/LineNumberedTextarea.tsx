@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { Textarea } from "@/components/ui/textarea";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface LineNumberedTextareaProps {
   value: string;
@@ -21,6 +22,7 @@ const LineNumberedTextarea: React.FC<LineNumberedTextareaProps> = ({
 }) => {
   const [lineNumbers, setLineNumbers] = useState<string[]>([]);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const lineNumbersRef = useRef<HTMLDivElement>(null);
 
   // Calculate line numbers whenever text changes
   useEffect(() => {
@@ -31,24 +33,25 @@ const LineNumberedTextarea: React.FC<LineNumberedTextareaProps> = ({
 
   // Sync scroll between line numbers and textarea
   const handleScroll = () => {
-    if (textareaRef.current) {
-      const lineNumbersEl = textareaRef.current.previousSibling as HTMLDivElement;
-      if (lineNumbersEl) {
-        lineNumbersEl.scrollTop = textareaRef.current.scrollTop;
-      }
+    if (textareaRef.current && lineNumbersRef.current) {
+      lineNumbersRef.current.scrollTop = textareaRef.current.scrollTop;
     }
   };
 
   return (
     <div className="line-numbered-wrapper" style={{ minHeight }}>
-      <div className="line-numbers" style={{ minHeight }}>
+      <div 
+        ref={lineNumbersRef} 
+        className="line-numbers" 
+        style={{ minHeight }}
+      >
         {lineNumbers.map((num, i) => (
-          <div key={i} className="leading-5 h-5">
+          <div key={i} className="leading-6 h-6">
             {num}
           </div>
         ))}
         {/* Add one extra line number to ensure there's always space to type on a new line */}
-        <div className="leading-5 h-5">{(lineNumbers.length + 1).toString()}</div>
+        <div className="leading-6 h-6">{(lineNumbers.length + 1).toString()}</div>
       </div>
       <Textarea
         ref={textareaRef}
