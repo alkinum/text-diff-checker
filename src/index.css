@@ -136,11 +136,11 @@
   }
 
   .line-numbers {
-    @apply absolute left-0 top-0 bottom-0 pt-2 pb-2 pl-2 pr-2 text-right bg-slate-50 dark:bg-slate-900 text-muted-foreground text-sm font-mono select-none border-r border-border/30 z-10 w-[40px] overflow-hidden;
+    @apply absolute left-0 top-0 bottom-0 pt-2 pb-2 pl-2 text-right text-muted-foreground text-sm font-mono select-none border-r border-border/30 z-10 w-[48px] overflow-hidden;
   }
 
   .line-numbered-textarea {
-    @apply pl-[50px] !important;
+    @apply pl-[55px] !important;
   }
 
   .line-highlight {
@@ -180,6 +180,16 @@
   /* Animated elements */
   .hover-lift {
     @apply transition-transform duration-300 hover:-translate-y-1 hover:shadow-lg;
+  }
+
+  /* Hide scrollbars but keep scrolling functionality */
+  .scrollbar-none {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
   }
 }
 

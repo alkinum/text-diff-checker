@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { FileDiff, Sparkle } from "lucide-react";
@@ -15,6 +15,12 @@ const DiffViewer: React.FC = () => {
   const [diff, setDiff] = useState<FormattedDiff | null>(null);
   const [language, setLanguage] = useState("plaintext");
   const { toast } = useToast();
+  
+  const leftTextareaContainerRef = useRef<HTMLDivElement>(null);
+  const rightTextareaContainerRef = useRef<HTMLDivElement>(null);
+
+  const leftTextareaRef = useRef<HTMLTextAreaElement>(null);
+  const rightTextareaRef = useRef<HTMLTextAreaElement>(null);
 
   // Detect language when text changes
   useEffect(() => {
@@ -23,6 +29,47 @@ const DiffViewer: React.FC = () => {
       setLanguage(detectedLanguage);
     }
   }, [leftText, rightText]);
+
+  // Set up scroll synchronization for input textareas
+  useEffect(() => {
+    const leftElement = leftTextareaRef.current;
+    const rightElement = rightTextareaRef.current;
+    
+    if (!leftElement || !rightElement) return;
+    
+    let isLeftScrolling = false;
+    let isRightScrolling = false;
+    
+    const handleLeftScroll = () => {
+      if (!isRightScrolling && leftElement && rightElement) {
+        isLeftScrolling = true;
+        rightElement.scrollTop = leftElement.scrollTop;
+        rightElement.scrollLeft = leftElement.scrollLeft;
+        setTimeout(() => {
+          isLeftScrolling = false;
+        }, 50);
+      }
+    };
+    
+    const handleRightScroll = () => {
+      if (!isLeftScrolling && leftElement && rightElement) {
+        isRightScrolling = true;
+        leftElement.scrollTop = rightElement.scrollTop;
+        leftElement.scrollLeft = rightElement.scrollLeft;
+        setTimeout(() => {
+          isRightScrolling = false;
+        }, 50);
+      }
+    };
+    
+    leftElement.addEventListener('scroll', handleLeftScroll);
+    rightElement.addEventListener('scroll', handleRightScroll);
+    
+    return () => {
+      leftElement.removeEventListener('scroll', handleLeftScroll);
+      rightElement.removeEventListener('scroll', handleRightScroll);
+    };
+  }, []);
 
   // Function to compute differences
   const handleCompare = () => {
@@ -112,6 +159,7 @@ const DiffViewer: React.FC = () => {
               value={leftText}
               onChange={(e) => setLeftText(e.target.value)}
               minHeight="300px"
+              scrollRef={leftTextareaContainerRef}
             />
           </div>
 
@@ -129,6 +177,7 @@ const DiffViewer: React.FC = () => {
               value={rightText}
               onChange={(e) => setRightText(e.target.value)}
               minHeight="300px"
+              scrollRef={rightTextareaContainerRef}
             />
           </div>
         </div>

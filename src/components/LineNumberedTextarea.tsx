@@ -10,6 +10,8 @@ interface LineNumberedTextareaProps {
   id?: string;
   className?: string;
   minHeight?: string;
+  onScroll?: () => void;
+  scrollRef?: React.RefObject<HTMLDivElement>;
 }
 
 const LineNumberedTextarea: React.FC<LineNumberedTextareaProps> = ({
@@ -19,10 +21,13 @@ const LineNumberedTextarea: React.FC<LineNumberedTextareaProps> = ({
   id,
   className,
   minHeight = "300px",
+  onScroll,
+  scrollRef,
 }) => {
   const [lineNumbers, setLineNumbers] = useState<string[]>([]);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const lineNumbersRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   // Calculate line numbers whenever text changes
   useEffect(() => {
@@ -35,23 +40,31 @@ const LineNumberedTextarea: React.FC<LineNumberedTextareaProps> = ({
   const handleScroll = () => {
     if (textareaRef.current && lineNumbersRef.current) {
       lineNumbersRef.current.scrollTop = textareaRef.current.scrollTop;
+      
+      if (onScroll) {
+        onScroll();
+      }
     }
   };
 
   return (
-    <div className="line-numbered-wrapper" style={{ minHeight }}>
+    <div 
+      className="line-numbered-wrapper" 
+      style={{ minHeight }} 
+      ref={containerRef}
+    >
       <div 
         ref={lineNumbersRef} 
-        className="line-numbers" 
+        className="line-numbers bg-slate-100 dark:bg-slate-800/95" 
         style={{ minHeight }}
       >
         {lineNumbers.map((num, i) => (
-          <div key={i} className="leading-6 h-6">
+          <div key={i} className="leading-6 h-6 px-2">
             {num}
           </div>
         ))}
         {/* Add one extra line number to ensure there's always space to type on a new line */}
-        <div className="leading-6 h-6">{(lineNumbers.length + 1).toString()}</div>
+        <div className="leading-6 h-6 px-2">{(lineNumbers.length + 1).toString()}</div>
       </div>
       <Textarea
         ref={textareaRef}
@@ -61,7 +74,7 @@ const LineNumberedTextarea: React.FC<LineNumberedTextareaProps> = ({
         onScroll={handleScroll}
         placeholder={placeholder}
         className={`line-numbered-textarea min-h-[${minHeight}] font-mono text-sm bg-background/50 backdrop-blur-sm border-border/50 focus:border-primary/50 transition-all duration-200 focus:ring-1 focus:ring-primary/30 ${className}`}
-        style={{ minHeight }}
+        style={{ minHeight, lineHeight: "1.5rem" }}
       />
     </div>
   );
