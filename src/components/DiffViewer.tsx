@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -50,19 +49,16 @@ const DiffViewer: React.FC = () => {
     setDiff(null);
   };
 
-  // Function to synchronize left textarea scroll to right
+  // Functions to handle scroll synchronization between textareas
   const handleLeftScroll = () => {
     if (rightScrollRef.current && leftScrollRef.current) {
       rightScrollRef.current.scrollTop = leftScrollRef.current.scrollTop;
-      rightScrollRef.current.scrollLeft = leftScrollRef.current.scrollLeft;
     }
   };
 
-  // Function to synchronize right textarea scroll to left
   const handleRightScroll = () => {
     if (leftScrollRef.current && rightScrollRef.current) {
       leftScrollRef.current.scrollTop = rightScrollRef.current.scrollTop;
-      leftScrollRef.current.scrollLeft = rightScrollRef.current.scrollLeft;
     }
   };
 

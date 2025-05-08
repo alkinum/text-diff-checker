@@ -33,32 +33,48 @@ const LineNumberedTextarea: React.FC<LineNumberedTextareaProps> = ({
     const lines = (value || "").split("\n");
     const numbers = lines.map((_, i) => (i + 1).toString());
     setLineNumbers(numbers);
+    
+    // Adjust height after line numbers update
+    adjustTextareaHeight();
   }, [value]);
-
-  // Handle scroll synchronization
-  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
-    if (textareaRef.current && lineNumbersRef.current && containerRef.current) {
-      // Since both elements are in the same scrollable container, they will scroll together
-      if (onScroll) {
-        onScroll();
-      }
-    }
-  };
-
+  
   // Function to auto-resize the textarea
   const adjustTextareaHeight = () => {
     if (textareaRef.current) {
       // Reset the height first to get the correct scrollHeight
       textareaRef.current.style.height = 'auto';
       // Set the height to the scrollHeight to fit the content
-      textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
+      const newHeight = `${textareaRef.current.scrollHeight}px`;
+      textareaRef.current.style.height = newHeight;
+      
+      // Also update the line numbers container height to match
+      if (lineNumbersRef.current) {
+        lineNumbersRef.current.style.height = newHeight;
+      }
     }
   };
 
-  // Adjust height on content change
+  // Handle scroll synchronization
+  const handleScroll = () => {
+    if (textareaRef.current && lineNumbersRef.current) {
+      lineNumbersRef.current.scrollTop = textareaRef.current.scrollTop;
+      
+      if (onScroll) {
+        onScroll();
+      }
+    }
+  };
+  
+  // Ensure line numbers container stays in sync with textarea
   useEffect(() => {
-    adjustTextareaHeight();
-  }, [value]);
+    const textarea = textareaRef.current;
+    if (textarea) {
+      textarea.addEventListener('scroll', handleScroll);
+      return () => {
+        textarea.removeEventListener('scroll', handleScroll);
+      };
+    }
+  }, []);
 
   return (
     <div 
@@ -68,17 +84,16 @@ const LineNumberedTextarea: React.FC<LineNumberedTextareaProps> = ({
     >
       <div 
         ref={containerRef}
-        className="flex w-full overflow-auto"
-        style={{ maxHeight: minHeight }}
-        onScroll={handleScroll}
+        className="flex w-full relative"
       >
         <div 
           ref={lineNumbersRef} 
-          className="line-numbers-container bg-slate-100 dark:bg-slate-800/95 sticky left-0 py-2"
+          className="line-numbers-container bg-slate-100 dark:bg-slate-800/95 absolute left-0 top-0 bottom-0 py-2 overflow-hidden"
           style={{ 
             zIndex: 10,
             borderRight: "1px solid var(--border)",
-            minWidth: "48px"
+            minWidth: "48px",
+            height: "100%"
           }}
         >
           {lineNumbers.map((num, i) => (
@@ -90,7 +105,7 @@ const LineNumberedTextarea: React.FC<LineNumberedTextareaProps> = ({
           <div className="leading-6 h-6 px-2 text-xs text-right text-muted-foreground">{(lineNumbers.length + 1).toString()}</div>
         </div>
         
-        <div className="w-full py-2">
+        <div className="w-full pl-12 py-2">
           <Textarea
             ref={textareaRef}
             id={id}
@@ -99,6 +114,7 @@ const LineNumberedTextarea: React.FC<LineNumberedTextareaProps> = ({
               onChange(e);
               // We'll adjust height after the value changes through the useEffect
             }}
+            onScroll={handleScroll}
             placeholder={placeholder}
             className={`line-numbered-textarea border-none focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 w-full font-mono text-sm p-0 bg-transparent overflow-hidden ${className}`}
             style={{ 
