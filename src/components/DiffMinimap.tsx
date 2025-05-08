@@ -1,3 +1,4 @@
+
 import React, { useEffect, useRef, useState } from 'react';
 import { type DiffResultWithLineNumbers } from '@/utils/diff/types';
 
@@ -5,9 +6,10 @@ interface DiffMinimapProps {
   lines: DiffResultWithLineNumbers[];
   containerRef: React.RefObject<HTMLDivElement>;
   position: 'left' | 'right';
+  isExpanded?: boolean;
 }
 
-const DiffMinimap: React.FC<DiffMinimapProps> = ({ lines, containerRef, position }) => {
+const DiffMinimap: React.FC<DiffMinimapProps> = ({ lines, containerRef, position, isExpanded = false }) => {
   const minimapRef = useRef<HTMLDivElement>(null);
   const [viewportPosition, setViewportPosition] = useState({ top: 0, height: 30 });
   
@@ -131,14 +133,16 @@ const DiffMinimap: React.FC<DiffMinimapProps> = ({ lines, containerRef, position
           );
         })}
         
-        {/* Current viewport indicator */}
-        <div 
-          className="absolute bg-white/40 dark:bg-gray-300/40 w-full backdrop-blur-sm shadow-sm"
-          style={{
-            top: viewportPosition.top,
-            height: Math.max(15, viewportPosition.height),
-          }}
-        />
+        {/* Current viewport indicator - only show when not expanded */}
+        {!isExpanded && (
+          <div 
+            className="absolute bg-white/40 dark:bg-gray-300/40 w-full backdrop-blur-sm shadow-sm"
+            style={{
+              top: viewportPosition.top,
+              height: Math.max(15, viewportPosition.height),
+            }}
+          />
+        )}
       </div>
     </div>
   );

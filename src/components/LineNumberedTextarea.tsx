@@ -28,6 +28,7 @@ const LineNumberedTextarea: React.FC<LineNumberedTextareaProps> = ({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const lineNumbersRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const wrapperRef = useRef<HTMLDivElement>(null);
 
   // Calculate line numbers whenever text changes
   useEffect(() => {
@@ -38,8 +39,12 @@ const LineNumberedTextarea: React.FC<LineNumberedTextareaProps> = ({
 
   // Sync scroll between line numbers and textarea
   const handleScroll = () => {
-    if (textareaRef.current && lineNumbersRef.current) {
+    if (textareaRef.current && lineNumbersRef.current && wrapperRef.current) {
+      // Synchronize vertical scrolling
       lineNumbersRef.current.scrollTop = textareaRef.current.scrollTop;
+      
+      // Synchronize horizontal scrolling
+      lineNumbersRef.current.scrollLeft = textareaRef.current.scrollLeft;
       
       if (onScroll) {
         onScroll();
@@ -53,29 +58,47 @@ const LineNumberedTextarea: React.FC<LineNumberedTextareaProps> = ({
       style={{ minHeight }} 
       ref={containerRef}
     >
-      <div 
-        ref={lineNumbersRef} 
-        className="line-numbers bg-slate-100 dark:bg-slate-800/95" 
-        style={{ minHeight, zIndex: 10 }}
-      >
-        {lineNumbers.map((num, i) => (
-          <div key={i} className="leading-6 h-6 px-2">
-            {num}
-          </div>
-        ))}
-        {/* Add one extra line number to ensure there's always space to type on a new line */}
-        <div className="leading-6 h-6 px-2">{(lineNumbers.length + 1).toString()}</div>
+      <div className="relative flex" ref={wrapperRef}>
+        <div 
+          ref={lineNumbersRef} 
+          className="line-numbers bg-slate-100 dark:bg-slate-800/95" 
+          style={{ 
+            minHeight, 
+            zIndex: 10,
+            position: "absolute",
+            left: 0,
+            top: 0,
+            bottom: 0,
+            overflow: "hidden"
+          }}
+        >
+          {lineNumbers.map((num, i) => (
+            <div key={i} className="leading-6 h-6 px-2">
+              {num}
+            </div>
+          ))}
+          {/* Add one extra line number to ensure there's always space to type on a new line */}
+          <div className="leading-6 h-6 px-2">{(lineNumbers.length + 1).toString()}</div>
+        </div>
+        
+        <Textarea
+          ref={textareaRef}
+          id={id}
+          value={value}
+          onChange={onChange}
+          onScroll={handleScroll}
+          placeholder={placeholder}
+          className={`line-numbered-textarea min-h-[${minHeight}] font-mono text-sm bg-background/50 backdrop-blur-sm border-border/50 focus:border-primary/50 transition-all duration-200 focus:ring-1 focus:ring-primary/30 ${className}`}
+          style={{ 
+            minHeight, 
+            lineHeight: "1.5rem", 
+            position: "relative", 
+            zIndex: 5,
+            width: "100%",
+            paddingLeft: "55px" // Ensure text doesn't overlap with line numbers
+          }}
+        />
       </div>
-      <Textarea
-        ref={textareaRef}
-        id={id}
-        value={value}
-        onChange={onChange}
-        onScroll={handleScroll}
-        placeholder={placeholder}
-        className={`line-numbered-textarea min-h-[${minHeight}] font-mono text-sm bg-background/50 backdrop-blur-sm border-border/50 focus:border-primary/50 transition-all duration-200 focus:ring-1 focus:ring-primary/30 ${className}`}
-        style={{ minHeight, lineHeight: "1.5rem", position: "relative", zIndex: 5 }}
-      />
     </div>
   );
 };

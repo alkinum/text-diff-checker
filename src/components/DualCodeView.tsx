@@ -165,6 +165,7 @@ const DualCodeView: React.FC<DualCodeViewProps> = ({
             lines={diff.left} 
             containerRef={leftScrollRef}
             position="left"
+            isExpanded={expanded}
           />
         </div>
         
@@ -189,6 +190,7 @@ const DualCodeView: React.FC<DualCodeViewProps> = ({
             lines={diff.right} 
             containerRef={rightScrollRef}
             position="right"
+            isExpanded={expanded}
           />
         </div>
       </div>

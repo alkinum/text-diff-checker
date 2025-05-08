@@ -19,9 +19,6 @@ const DiffViewer: React.FC = () => {
   const leftTextareaContainerRef = useRef<HTMLDivElement>(null);
   const rightTextareaContainerRef = useRef<HTMLDivElement>(null);
 
-  const leftTextareaRef = useRef<HTMLTextAreaElement>(null);
-  const rightTextareaRef = useRef<HTMLTextAreaElement>(null);
-
   // Detect language when text changes
   useEffect(() => {
     if (leftText || rightText) {
@@ -29,47 +26,6 @@ const DiffViewer: React.FC = () => {
       setLanguage(detectedLanguage);
     }
   }, [leftText, rightText]);
-
-  // Set up scroll synchronization for input textareas
-  useEffect(() => {
-    const leftElement = leftTextareaRef.current;
-    const rightElement = rightTextareaRef.current;
-    
-    if (!leftElement || !rightElement) return;
-    
-    let isLeftScrolling = false;
-    let isRightScrolling = false;
-    
-    const handleLeftScroll = () => {
-      if (!isRightScrolling && leftElement && rightElement) {
-        isLeftScrolling = true;
-        rightElement.scrollTop = leftElement.scrollTop;
-        rightElement.scrollLeft = leftElement.scrollLeft;
-        setTimeout(() => {
-          isLeftScrolling = false;
-        }, 50);
-      }
-    };
-    
-    const handleRightScroll = () => {
-      if (!isLeftScrolling && leftElement && rightElement) {
-        isRightScrolling = true;
-        leftElement.scrollTop = rightElement.scrollTop;
-        leftElement.scrollLeft = rightElement.scrollLeft;
-        setTimeout(() => {
-          isRightScrolling = false;
-        }, 50);
-      }
-    };
-    
-    leftElement.addEventListener('scroll', handleLeftScroll);
-    rightElement.addEventListener('scroll', handleRightScroll);
-    
-    return () => {
-      leftElement.removeEventListener('scroll', handleLeftScroll);
-      rightElement.removeEventListener('scroll', handleRightScroll);
-    };
-  }, []);
 
   // Function to compute differences
   const handleCompare = () => {
@@ -92,6 +48,32 @@ const DiffViewer: React.FC = () => {
     setLeftText("");
     setRightText("");
     setDiff(null);
+  };
+
+  // Function to synchronize left textarea scroll to right
+  const handleLeftScroll = () => {
+    if (rightTextareaContainerRef.current && leftTextareaContainerRef.current) {
+      const leftTextarea = leftTextareaContainerRef.current.querySelector('textarea');
+      const rightTextarea = rightTextareaContainerRef.current.querySelector('textarea');
+      
+      if (leftTextarea && rightTextarea) {
+        rightTextarea.scrollTop = leftTextarea.scrollTop;
+        rightTextarea.scrollLeft = leftTextarea.scrollLeft;
+      }
+    }
+  };
+
+  // Function to synchronize right textarea scroll to left
+  const handleRightScroll = () => {
+    if (leftTextareaContainerRef.current && rightTextareaContainerRef.current) {
+      const leftTextarea = leftTextareaContainerRef.current.querySelector('textarea');
+      const rightTextarea = rightTextareaContainerRef.current.querySelector('textarea');
+      
+      if (leftTextarea && rightTextarea) {
+        leftTextarea.scrollTop = rightTextarea.scrollTop;
+        leftTextarea.scrollLeft = rightTextarea.scrollLeft;
+      }
+    }
   };
 
   return (
@@ -153,14 +135,16 @@ const DiffViewer: React.FC = () => {
                 onLanguageChange={setLanguage}
               />
             </div>
-            <LineNumberedTextarea
-              id="original"
-              placeholder="Paste original text here..."
-              value={leftText}
-              onChange={(e) => setLeftText(e.target.value)}
-              minHeight="300px"
-              scrollRef={leftTextareaContainerRef}
-            />
+            <div ref={leftTextareaContainerRef}>
+              <LineNumberedTextarea
+                id="original"
+                placeholder="Paste original text here..."
+                value={leftText}
+                onChange={(e) => setLeftText(e.target.value)}
+                minHeight="300px"
+                onScroll={handleLeftScroll}
+              />
+            </div>
           </div>
 
           <div className="space-y-4 glass-card rounded-xl p-5 transition-all duration-300 hover:shadow-xl">
@@ -171,14 +155,16 @@ const DiffViewer: React.FC = () => {
                 onLanguageChange={setLanguage}
               />
             </div>
-            <LineNumberedTextarea
-              id="modified"
-              placeholder="Paste modified text here..."
-              value={rightText}
-              onChange={(e) => setRightText(e.target.value)}
-              minHeight="300px"
-              scrollRef={rightTextareaContainerRef}
-            />
+            <div ref={rightTextareaContainerRef}>
+              <LineNumberedTextarea
+                id="modified"
+                placeholder="Paste modified text here..."
+                value={rightText}
+                onChange={(e) => setRightText(e.target.value)}
+                minHeight="300px"
+                onScroll={handleRightScroll}
+              />
+            </div>
           </div>
         </div>
       </div>
