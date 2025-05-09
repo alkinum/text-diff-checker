@@ -1,14 +1,16 @@
 {
-  "name": "vite_react_shadcn_ts",
-  "private": true,
-  "version": "0.0.0",
+  "name": "text-diff-checker",
+  "version": "0.1.0",
   "type": "module",
+  "author": "BackRunner",
+  "license": "MIT",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "rimraf dist && vite build",
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "deploy": "npm run build && wrangler pages deploy dist"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
@@ -39,7 +41,7 @@
     "@radix-ui/react-toggle": "^1.1.8",
     "@radix-ui/react-toggle-group": "^1.1.9",
     "@radix-ui/react-tooltip": "^1.2.6",
-    "@tanstack/react-query": "^5.75.5",
+    "@tanstack/react-query": "^5.75.7",
     "@types/prismjs": "^1.26.5",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
@@ -67,7 +69,7 @@
   "devDependencies": {
     "@eslint/js": "^9.26.0",
     "@tailwindcss/typography": "^0.5.16",
-    "@types/node": "^22.15.16",
+    "@types/node": "^22.15.17",
     "@types/react": "^18.3.21",
     "@types/react-dom": "^18.3.7",
     "@vitejs/plugin-react-swc": "^3.9.0",
@@ -78,9 +80,11 @@
     "globals": "^15.15.0",
     "lovable-tagger": "^1.1.8",
     "postcss": "^8.5.3",
+    "rimraf": "^6.0.1",
     "tailwindcss": "^3.4.17",
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.32.0",
-    "vite": "^5.4.19"
+    "vite": "^5.4.19",
+    "wrangler": "^4.14.4"
   }
 }
