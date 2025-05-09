@@ -178,11 +178,6 @@
     @apply transition-all duration-300 ease-out transform hover:-translate-y-1 hover:shadow-lg active:translate-y-0;
   }
 
-  /* Animated elements */
-  .hover-lift {
-    @apply transition-transform duration-300 hover:-translate-y-1 hover:shadow-lg;
-  }
-
   /* Hide scrollbars but keep scrolling functionality */
   .scrollbar-none {
     -ms-overflow-style: none;

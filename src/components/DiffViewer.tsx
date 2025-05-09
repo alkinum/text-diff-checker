@@ -15,10 +15,10 @@ const DiffViewer: React.FC = () => {
   const [diff, setDiff] = useState<FormattedDiff | null>(null);
   const [language, setLanguage] = useState("plaintext");
   const { toast } = useToast();
-  
+
   const leftScrollRef = useRef<HTMLDivElement>(null);
   const rightScrollRef = useRef<HTMLDivElement>(null);
-  
+
   // Fixed height for both textareas
   const textareaHeight = "300px";
 
@@ -84,7 +84,7 @@ const DiffViewer: React.FC = () => {
         {/* Diff View (appears only when diff exists) */}
         {diff && (
           <div className="space-y-4 mb-8 glass-card rounded-xl p-4 shadow-lg">
-            <DualCodeView 
+            <DualCodeView
               leftContent={leftText}
               rightContent={rightText}
               diff={diff}
@@ -99,14 +99,14 @@ const DiffViewer: React.FC = () => {
             Input Text
           </div>
           <div className="flex gap-4">
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               onClick={handleClear}
               className="btn-transition border-border/50"
             >
               Clear
             </Button>
-            <Button 
+            <Button
               onClick={handleCompare}
               className="btn-transition bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary"
             >

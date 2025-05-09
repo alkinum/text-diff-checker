@@ -4,6 +4,11 @@
   "type": "module",
   "author": "BackRunner",
   "license": "MIT",
+  "homepage": "https://diff.pwp.sh",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/alkinum/text-diff-checker"
+  },
   "scripts": {
     "dev": "vite",
     "build": "rimraf dist && vite build",
