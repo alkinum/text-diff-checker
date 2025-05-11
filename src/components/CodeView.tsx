@@ -21,6 +21,7 @@ import 'prismjs/components/prism-sql';
 import 'prismjs/components/prism-xml-doc';
 import 'prismjs/components/prism-ini';
 import { type DiffResultWithLineNumbers } from '@/utils/diff/types';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 // Load Prism CSS theme
 import 'prismjs/themes/prism.css';
@@ -53,6 +54,7 @@ const CodeView: React.FC<CodeViewProps> = ({
   horizontalScrollRef
 }) => {
   const codeRef = useRef<HTMLPreElement>(null);
+  const isMobile = useIsMobile();
 
   // Highlight code when component mounts or when content/language changes
   useEffect(() => {
@@ -72,7 +74,7 @@ const CodeView: React.FC<CodeViewProps> = ({
           overflowY: !isExpanded ? 'auto' : 'visible'
         }}
       >
-        {title && (
+        {title && !isMobile && (
           <div className="px-4 py-2 font-medium text-sm bg-slate-100 dark:bg-slate-800/95 border-b sticky top-0 z-20">
             {title}
           </div>
@@ -80,9 +82,13 @@ const CodeView: React.FC<CodeViewProps> = ({
         <div className="flex">
           {showLineNumbers && (
             <div className="line-numbers-container py-4 bg-slate-100 dark:bg-slate-800/95 sticky left-0 z-10 border-r border-border/50" 
-                 style={{ minWidth: "48px", borderRight: "1px solid var(--border)" }}>
+                 style={{ minWidth: isMobile ? "32px" : "48px", borderRight: "1px solid var(--border)" }}>
               {lines.map((line, i) => (
-                <div key={i} className={`leading-6 ${LINE_HEIGHT} px-2 text-xs text-right text-muted-foreground ${line.spacer ? 'text-transparent' : ''}`}>
+                <div 
+                  key={i} 
+                  className={`leading-6 ${LINE_HEIGHT} ${isMobile ? 'px-1' : 'px-2'} text-xs text-right text-muted-foreground ${line.spacer ? 'text-transparent' : ''}`}
+                  style={{ fontSize: isMobile ? '10px' : undefined }}
+                >
                   {line.spacer ? '\u00A0' : line.lineNumber}
                 </div>
               ))}
@@ -90,7 +96,7 @@ const CodeView: React.FC<CodeViewProps> = ({
           )}
           <pre 
             ref={horizontalScrollRef}
-            className="p-4 pl-2 m-0 flex-grow overflow-x-auto scrollbar-thin"
+            className={`p-4 ${isMobile ? 'pl-1' : 'pl-2'} m-0 flex-grow overflow-x-auto scrollbar-thin`}
           >
             <code 
               className={`language-${language} whitespace-pre`}
@@ -180,7 +186,7 @@ const CodeView: React.FC<CodeViewProps> = ({
         overflowY: !isExpanded ? 'auto' : 'visible' 
       }}
     >
-      {title && (
+      {title && !isMobile && (
         <div className="px-4 py-2 font-medium text-sm bg-slate-100 dark:bg-slate-800/95 border-b sticky top-0 z-20">
           {title}
         </div>

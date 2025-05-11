@@ -1,7 +1,7 @@
-
 import React from 'react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { FileCode } from 'lucide-react';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface FormatSelectorProps {
   selectedLanguage: string;
@@ -32,18 +32,20 @@ const LANGUAGE_OPTIONS = [
   { value: 'ini', label: 'INI' },
 ];
 
-const FormatSelector: React.FC<FormatSelectorProps> = ({ 
-  selectedLanguage, 
-  onLanguageChange 
+const FormatSelector: React.FC<FormatSelectorProps> = ({
+  selectedLanguage,
+  onLanguageChange
 }) => {
+  const isMobile = useIsMobile();
+
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex items-center gap-1">
       <FileCode className="h-4 w-4 text-muted-foreground" />
       <Select value={selectedLanguage} onValueChange={onLanguageChange}>
-        <SelectTrigger className="w-[140px]">
+        <SelectTrigger className={`${isMobile ? 'h-7 text-xs w-[100px]' : 'w-[140px]'}`}>
           <SelectValue placeholder="Select format" />
         </SelectTrigger>
-        <SelectContent>
+        <SelectContent className={isMobile ? 'text-sm' : ''}>
           {LANGUAGE_OPTIONS.map((option) => (
             <SelectItem key={option.value} value={option.value}>
               {option.label}

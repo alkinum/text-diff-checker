@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -8,6 +7,7 @@ import { computeLineDiff, detectLanguage, type FormattedDiff } from "@/utils/dif
 import DualCodeView from "@/components/DualCodeView";
 import FormatSelector from "@/components/FormatSelector";
 import LineNumberedTextarea from "@/components/LineNumberedTextarea";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const DiffViewer: React.FC = () => {
   const [leftText, setLeftText] = useState("");
@@ -15,12 +15,13 @@ const DiffViewer: React.FC = () => {
   const [diff, setDiff] = useState<FormattedDiff | null>(null);
   const [language, setLanguage] = useState("plaintext");
   const { toast } = useToast();
+  const isMobile = useIsMobile();
 
   const leftScrollRef = useRef<HTMLDivElement>(null);
   const rightScrollRef = useRef<HTMLDivElement>(null);
 
-  // Fixed height for both textareas
-  const textareaHeight = "300px";
+  // Responsive height for textareas
+  const textareaHeight = isMobile ? "200px" : "300px";
 
   // Detect language when text changes
   useEffect(() => {
@@ -67,23 +68,23 @@ const DiffViewer: React.FC = () => {
   };
 
   return (
-    <div className="max-w-7xl mx-auto p-6 animate-fade-in">
-      <header className="mb-8 pt-6 pb-8 text-center">
-        <div className="flex items-center justify-center gap-3 mb-6">
-          <FileDiff className="h-12 w-12 text-primary" />
-          <h1 className="text-4xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-primary to-blue-500">
+    <div className={`max-w-7xl mx-auto ${isMobile ? 'p-4' : 'p-6'} animate-fade-in`}>
+      <header className={`mb-${isMobile ? '4' : '8'} ${isMobile ? 'pt-10 pb-4' : 'pt-10 pb-8'} text-center`}>
+        <div className="flex items-center justify-center gap-3 mb-4">
+          <FileDiff className={`${isMobile ? 'h-6 w-6' : 'h-12 w-12'} text-primary`} />
+          <h1 className={`${isMobile ? 'text-xl' : 'text-4xl'} font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-primary to-blue-500`}>
             Text Diff Checker
           </h1>
         </div>
-        <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
+        <p className={`text-muted-foreground ${isMobile ? 'text-sm' : 'text-lg'} max-w-2xl mx-auto`}>
           Compare text files with syntax highlighting for multiple formats
         </p>
       </header>
 
-      <div className="space-y-8">
+      <div className={`space-y-${isMobile ? '4' : '8'}`}>
         {/* Diff View (appears only when diff exists) */}
         {diff && (
-          <div className="space-y-4 mb-8 glass-card rounded-xl p-4 shadow-lg">
+          <div className="space-y-4 mb-4 glass-card rounded-xl p-4 shadow-lg">
             <DualCodeView
               leftContent={leftText}
               rightContent={rightText}
@@ -93,35 +94,37 @@ const DiffViewer: React.FC = () => {
           </div>
         )}
 
-        <div className="flex justify-between items-center mb-6 border-b border-border/50 pb-4">
-          <div className="text-xl font-medium flex items-center gap-2">
-            <Sparkle className="h-5 w-5 text-primary" />
+        <div className="flex justify-between items-center mb-4 border-b border-border/50 pb-3">
+          <div className={`${isMobile ? 'text-base' : 'text-xl'} font-medium flex items-center gap-2`}>
+            <Sparkle className={`${isMobile ? 'h-3.5' : 'h-5'} text-primary`} />
             Input Text
           </div>
-          <div className="flex gap-4">
+          <div className="flex gap-2">
             <Button
               variant="outline"
               onClick={handleClear}
               className="btn-transition border-border/50"
+              size={isMobile ? "sm" : "default"}
             >
               Clear
             </Button>
             <Button
               onClick={handleCompare}
               className="btn-transition bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary"
+              size={isMobile ? "sm" : "default"}
             >
               Compare
             </Button>
           </div>
         </div>
 
-        {/* Text Input View with Line Numbers - now with fixed height containers */}
-        <div className="grid md:grid-cols-2 gap-8">
-          <div className="space-y-4 glass-card rounded-xl p-5 transition-all duration-300 hover:shadow-xl w-full">
+        {/* Text Input View with Line Numbers - with responsive height */}
+        <div className={`grid md:grid-cols-2 gap-${isMobile ? '4' : '8'}`}>
+          <div className="space-y-3 glass-card rounded-xl p-4 transition-all duration-300 hover:shadow-xl w-full">
             <div className="flex justify-between items-center">
-              <Label htmlFor="original" className="text-base font-medium">Original Text</Label>
-              <FormatSelector 
-                selectedLanguage={language} 
+              <Label htmlFor="original" className={`${isMobile ? 'text-xs' : 'text-base'} font-medium`}>Original Text</Label>
+              <FormatSelector
+                selectedLanguage={language}
                 onLanguageChange={setLanguage}
               />
             </div>
@@ -137,11 +140,11 @@ const DiffViewer: React.FC = () => {
             />
           </div>
 
-          <div className="space-y-4 glass-card rounded-xl p-5 transition-all duration-300 hover:shadow-xl w-full">
+          <div className="space-y-3 glass-card rounded-xl p-4 transition-all duration-300 hover:shadow-xl w-full">
             <div className="flex justify-between items-center">
-              <Label htmlFor="modified" className="text-base font-medium">Modified Text</Label>
-              <FormatSelector 
-                selectedLanguage={language} 
+              <Label htmlFor="modified" className={`${isMobile ? 'text-xs' : 'text-base'} font-medium`}>Modified Text</Label>
+              <FormatSelector
+                selectedLanguage={language}
                 onLanguageChange={setLanguage}
               />
             </div>
