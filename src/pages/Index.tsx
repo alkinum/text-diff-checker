@@ -10,7 +10,7 @@ const Index = () => {
 
   return (
     <>
-      <div className="absolute top-4 right-4 z-50 animate-fade-in flex items-center gap-2">
+      <div className="absolute top-4 right-4 z-50 flex items-center gap-2">
         <Button
           variant="ghost"
           size="sm"

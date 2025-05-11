@@ -112,7 +112,7 @@
 
   body {
     @apply bg-background text-foreground antialiased;
-    transition: background-color 0.3s ease, color 0.3s ease;
+    transition: background-color 0.3s ease;
   }
 
   pre {
@@ -176,6 +176,7 @@
   /* Button transitions */
   .btn-transition {
     @apply transition-all duration-300 ease-out transform hover:-translate-y-1 hover:shadow-lg active:translate-y-0;
+    transition-property:all !important;
   }
 
   /* Hide scrollbars but keep scrolling functionality */

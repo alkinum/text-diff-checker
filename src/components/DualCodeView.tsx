@@ -298,7 +298,7 @@ const DualCodeView: React.FC<DualCodeViewProps> = ({
       <div className={`${isMobile ? 'flex flex-col' : 'grid grid-cols-2'} gap-0 relative`}>
         <div className={`relative ${isMobile ? 'border-b' : 'border-r'}`}>
           {isMobile && (
-            <div className="flex justify-between items-center w-full p-1.5 bg-slate-50 dark:bg-slate-800/75 border-b">
+            <div className="flex justify-between items-center w-full p-1.5 bg-slate-50 dark:bg-slate-800/75 border-b select-none">
               <span className="text-xs font-medium text-muted-foreground">Original</span>
               {renderMobileLeftSummary()}
             </div>
@@ -327,7 +327,7 @@ const DualCodeView: React.FC<DualCodeViewProps> = ({
 
         <div className="relative">
           {isMobile && (
-            <div className="flex justify-between items-center w-full p-1.5 bg-slate-50 dark:bg-slate-800/75 border-b">
+            <div className="flex justify-between items-center w-full p-1.5 bg-slate-50 dark:bg-slate-800/75 border-b select-none">
               <span className="text-xs font-medium text-muted-foreground">Modified</span>
               {renderMobileRightSummary()}
             </div>

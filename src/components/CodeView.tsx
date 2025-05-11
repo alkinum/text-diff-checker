@@ -41,10 +41,10 @@ interface CodeViewProps {
 
 const LINE_HEIGHT = 'h-6'; // Consistent line height class
 
-const CodeView: React.FC<CodeViewProps> = ({ 
-  content, 
-  language, 
-  lines, 
+const CodeView: React.FC<CodeViewProps> = ({
+  content,
+  language,
+  lines,
   showLineNumbers = true,
   title,
   position = 'left', // Default to left position
@@ -66,26 +66,26 @@ const CodeView: React.FC<CodeViewProps> = ({
   // If we have line-by-line diff data
   if (lines && lines.length > 0) {
     return (
-      <div 
+      <div
         ref={scrollRef} // Assign scrollRef here
         className="flex flex-col w-full relative scrollbar-none"
-        style={{ 
-          maxHeight: !isExpanded ? maxHeight : 'none', 
+        style={{
+          maxHeight: !isExpanded ? maxHeight : 'none',
           overflowY: !isExpanded ? 'auto' : 'visible'
         }}
       >
         {title && !isMobile && (
-          <div className="px-4 py-2 font-medium text-sm bg-slate-100 dark:bg-slate-800/95 border-b sticky top-0 z-20">
+          <div className="px-4 py-2 font-medium text-sm bg-slate-100 dark:bg-slate-800/95 border-b sticky top-0 z-20 select-none">
             {title}
           </div>
         )}
         <div className="flex">
           {showLineNumbers && (
-            <div className="line-numbers-container py-4 bg-slate-100 dark:bg-slate-800/95 sticky left-0 z-10 border-r border-border/50" 
+            <div className="line-numbers-container py-4 bg-slate-100 dark:bg-slate-800/95 sticky left-0 z-10 border-r border-border/50"
                  style={{ minWidth: isMobile ? "32px" : "48px", borderRight: "1px solid var(--border)" }}>
               {lines.map((line, i) => (
-                <div 
-                  key={i} 
+                <div
+                  key={i}
                   className={`leading-6 ${LINE_HEIGHT} ${isMobile ? 'px-1' : 'px-2'} text-xs text-right text-muted-foreground ${line.spacer ? 'text-transparent' : ''}`}
                   style={{ fontSize: isMobile ? '10px' : undefined }}
                 >
@@ -94,11 +94,11 @@ const CodeView: React.FC<CodeViewProps> = ({
               ))}
             </div>
           )}
-          <pre 
+          <pre
             ref={horizontalScrollRef}
             className={`p-4 ${isMobile ? 'pl-1' : 'pl-2'} m-0 flex-grow overflow-x-auto scrollbar-thin`}
           >
-            <code 
+            <code
               className={`language-${language} whitespace-pre`}
               style={{ display: 'table', width: 'max-content', minWidth: '100%' }}
             >
@@ -107,16 +107,16 @@ const CodeView: React.FC<CodeViewProps> = ({
                 if (line.spacer) {
                   return <div key={i} className={`block ${LINE_HEIGHT} leading-6`}>&nbsp;</div>;
                 }
-                
+
                 // Determine line class based on position and line type
                 let className = `block ${LINE_HEIGHT} leading-6`;
-                
+
                 if (position === 'left' && line.removed) {
                   className += " line-removed";
                 } else if (position === 'right' && line.added) {
                   className += " line-added";
                 }
-                
+
                 // If this line has inline changes, render them
                 if (line.inlineChanges && line.inlineChanges.length > 0) {
                   return (
@@ -124,9 +124,9 @@ const CodeView: React.FC<CodeViewProps> = ({
                       {line.inlineChanges.map((part, j) => {
                         // Skip rendering empty parts
                         if (!part.value) return null;
-                        
+
                         let spanClass = "";
-                        
+
                         // Apply highlighting for removed parts in original (left)
                         if (position === 'left' && part.removed) {
                           spanClass = "token-removed";
@@ -135,15 +135,15 @@ const CodeView: React.FC<CodeViewProps> = ({
                         else if (position === 'right' && part.added) {
                           spanClass = "token-added";
                         }
-                        
+
                         return (
-                          <span 
-                            key={j} 
+                          <span
+                            key={j}
                             className={spanClass}
-                            dangerouslySetInnerHTML={{ 
+                            dangerouslySetInnerHTML={{
                               __html: Prism.highlight(
-                                part.value, 
-                                Prism.languages[language] || Prism.languages.plaintext, 
+                                part.value,
+                                Prism.languages[language] || Prism.languages.plaintext,
                                 language
                               )
                             }}
@@ -153,18 +153,18 @@ const CodeView: React.FC<CodeViewProps> = ({
                     </div>
                   );
                 }
-                
+
                 // Regular line rendering (no inline changes)
                 return (
                   <div key={i} className={className}>
-                    <span 
-                      dangerouslySetInnerHTML={{ 
+                    <span
+                      dangerouslySetInnerHTML={{
                         __html: Prism.highlight(
-                          line.value || " ", 
-                          Prism.languages[language] || Prism.languages.plaintext, 
+                          line.value || " ",
+                          Prism.languages[language] || Prism.languages.plaintext,
                           language
                         )
-                      }} 
+                      }}
                     />
                   </div>
                 );
@@ -178,12 +178,12 @@ const CodeView: React.FC<CodeViewProps> = ({
 
   // Standard syntax highlighted view
   return (
-    <div 
+    <div
       ref={scrollRef}
       className="flex flex-col w-full scrollbar-none"
-      style={{ 
-        maxHeight: !isExpanded ? maxHeight : 'none', 
-        overflowY: !isExpanded ? 'auto' : 'visible' 
+      style={{
+        maxHeight: !isExpanded ? maxHeight : 'none',
+        overflowY: !isExpanded ? 'auto' : 'visible'
       }}
     >
       {title && !isMobile && (
@@ -192,7 +192,7 @@ const CodeView: React.FC<CodeViewProps> = ({
         </div>
       )}
       <div className="w-full">
-        <pre 
+        <pre
           ref={codeRef}
           className="p-4 m-0 w-full overflow-x-auto scrollbar-thin"
         >
