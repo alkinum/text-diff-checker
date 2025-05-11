@@ -1,73 +1,78 @@
-# Welcome to your Lovable project
+# Text Diff Checker
 
-## Project info
+A modern, browser-based text difference checking tool that processes everything locally on your device. Compare code snippets, configuration files, or any text with syntax highlighting and intuitive visualization.
 
-**URL**: https://lovable.dev/projects/6d69cb91-1c99-407f-81d7-1c3adb32348b
+## Features
 
-## How can I edit this code?
+- **100% Client-Side Processing**: All difference calculations happen entirely in your browser - no data is ever sent to any server
+- **Private & Secure**: Your text never leaves your device, making it safe for sensitive information
+- **Syntax Highlighting**: Supports multiple programming languages and file formats
+- **Line-by-Line Comparison**: Clear visualization of additions, deletions, and modifications
+- **Word-Level Diffs**: Highlights specific changes within modified lines
+- **Automatic Language Detection**: Identifies programming language based on content
+- **Responsive Design**: Works on desktop and mobile devices
 
-There are several ways of editing your application.
+## Getting Started
 
-**Use Lovable**
+### Online Version
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/6d69cb91-1c99-407f-81d7-1c3adb32348b) and start prompting.
+Visit [https://text-diff-checker.example.com](https://text-diff-checker.example.com) to use the tool immediately without installation.
 
-Changes made via Lovable will be committed automatically to this repo.
+### Run Locally
 
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
+If you prefer to run the application on your local machine:
 
 ```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+# Clone this repository
+git clone https://github.com/yourusername/text-diff-checker.git
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+# Navigate to the project directory
+cd text-diff-checker
 
-# Step 3: Install the necessary dependencies.
-npm i
+# Install dependencies
+npm install
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
+# Start the development server
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+The application will be available at `http://localhost:5173` (or another port if 5173 is in use).
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+## How It Works
 
-**Use GitHub Codespaces**
+1. Paste or type your original text in the left panel
+2. Paste or type your modified text in the right panel
+3. Click "Compare" to see the differences
+4. The syntax highlighting will automatically adjust based on the content
+5. You can manually select a different language using the dropdown menu
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+## Technology Stack
 
-## What technologies are used for this project?
+- [Vite](https://vitejs.dev/)
+- [React](https://reactjs.org/)
+- [TypeScript](https://www.typescriptlang.org/)
+- [Tailwind CSS](https://tailwindcss.com/)
+- [shadcn/ui](https://ui.shadcn.com/)
+- [diff](https://github.com/kpdecker/jsdiff) - JavaScript library for calculating text differences
 
-This project is built with:
+## Privacy
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+This application:
+- Never sends your text data to any server
+- Has no analytics or tracking
+- Functions entirely in your browser
+- Can even work offline after initial load
 
-## How can I deploy this project?
+## License
 
-Simply open [Lovable](https://lovable.dev/projects/6d69cb91-1c99-407f-81d7-1c3adb32348b) and click on Share -> Publish.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## Can I connect a custom domain to my Lovable project?
+## Contributing
 
-Yes, you can!
+Contributions are welcome! Please feel free to submit a Pull Request.
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request

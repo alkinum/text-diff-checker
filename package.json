@@ -1,6 +1,7 @@
 {
   "name": "text-diff-checker",
   "version": "0.1.0",
+  "description": "A modern, browser-based text difference checking tool that processes everything locally on your device.",
   "type": "module",
   "author": "BackRunner",
   "license": "MIT",
