@@ -2,9 +2,45 @@ import { diffLines } from 'diff';
 import { applyWordDiffs } from './wordDiffer';
 import { detectLanguage } from './languageDetector';
 import { FormattedDiff, DiffResultWithLineNumbers } from './types';
+import { createDiffWorker, terminateDiffWorker } from './workerManager';
+
+// u5224u65adu662fu5426u652fu6301Web Worker
+const supportsWorker = typeof Worker !== 'undefined';
+
+// u5b9au4e49u884cu5bf9u6bd4u7ed3u679cu7c7bu578b
+interface LineDiffResult {
+  value: string;
+  added?: boolean;
+  removed?: boolean;
+  count?: number;
+}
+
+// u5728Web Workeru4e2du5904u7406u884cu5deeu5f02u8ba1u7b97
+function processLineDiffInWorker(oldText: string, newText: string): Promise<LineDiffResult[]> {
+  const worker = createDiffWorker();
+  if (!worker) {
+    // u5982u679cWorkeru4e0du53efu7528uff0cu540cu6b65u6267u884c
+    return Promise.resolve(diffLines(oldText, newText));
+  }
+  
+  return new Promise((resolve) => {
+    worker.onmessage = function(e) {
+      const { result } = e.data;
+      resolve(result);
+      // u5b8cu6210u540eu6e05u7406worker
+      terminateDiffWorker();
+    };
+    
+    worker.postMessage({
+      action: 'diffLines',
+      oldText,
+      newText
+    });
+  });
+}
 
 // Main function to compute line-by-line differences with proper alignment
-export function computeLineDiff(oldText: string, newText: string): FormattedDiff {
+export async function computeLineDiff(oldText: string, newText: string): Promise<FormattedDiff> {
   // First, split both texts into lines
   const oldLines = oldText.split('\n');
   const newLines = newText.split('\n');
@@ -16,8 +52,14 @@ export function computeLineDiff(oldText: string, newText: string): FormattedDiff
   let leftLineNumber = 1;
   let rightLineNumber = 1;
 
-  // Get the diff results
-  const changes = diffLines(oldText, newText);
+  // Get the diff results - u4f7fu7528Workeru5f02u6b65u8ba1u7b97u5982u679cu53efu7528
+  let changes: LineDiffResult[];
+  try {
+    changes = await processLineDiffInWorker(oldText, newText);
+  } catch (e) {
+    console.error('Worker diff calculation failed, falling back to sync mode:', e);
+    changes = diffLines(oldText, newText);
+  }
 
   // First pass: identify adjacent removed/added pairs to mark them as modified instead
   const processedChanges = [];
@@ -186,7 +228,7 @@ export function computeLineDiff(oldText: string, newText: string): FormattedDiff
   }
 
   // Apply character-level diffs for modified lines
-  applyWordDiffs(leftLines, rightLines);
+  await applyWordDiffs(leftLines, rightLines);
 
   return { left: leftLines, right: rightLines };
 }
