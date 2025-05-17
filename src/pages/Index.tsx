@@ -23,7 +23,7 @@ const Index = () => {
         </Button>
         <ThemeToggle />
       </div>
-      <div className="min-h-screen bg-gradient-to-b from-background to-background/95 dark:from-background dark:to-background/95 pb-20">
+      <div className="min-h-screen pb-16 bg-gradient-to-b from-background to-background/95 dark:from-background dark:to-background/95">
         <DiffViewer />
       </div>
     </>

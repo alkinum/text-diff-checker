@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef, useLayoutEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { FileDiff, Sparkle, Loader2 } from "lucide-react";
@@ -15,14 +15,41 @@ const DiffViewer: React.FC = () => {
   const [diff, setDiff] = useState<FormattedDiff | null>(null);
   const [language, setLanguage] = useState("plaintext");
   const [isComparing, setIsComparing] = useState(false);
+  const [textareaHeight, setTextareaHeight] = useState("300px");
   const { toast } = useToast();
   const isMobile = useIsMobile();
 
   const leftScrollRef = useRef<HTMLDivElement>(null);
   const rightScrollRef = useRef<HTMLDivElement>(null);
 
-  // Responsive height for textareas
-  const textareaHeight = isMobile ? "200px" : "300px";
+  // Calculate optimal textarea height based on screen size
+  const calculateTextareaHeight = () => {
+    const minHeight = isMobile ? 200 : 300;
+    const headerHeight = isMobile ? 230 : 300; // Approximate header + other UI elements height
+    const footerHeight = 100; // Increased to account for footer and bottom padding in Index
+    const padding = isMobile ? 32 : 64;
+
+    const availableHeight = window.innerHeight - headerHeight - footerHeight - padding;
+    const optimalHeight = Math.max(availableHeight, minHeight);
+
+    return `${optimalHeight}px`;
+  };
+
+  // Update textarea height on window resize
+  useLayoutEffect(() => {
+    const updateHeight = () => {
+      setTextareaHeight(calculateTextareaHeight());
+    };
+
+    // Initial calculation
+    updateHeight();
+
+    // Add event listener for resize
+    window.addEventListener("resize", updateHeight);
+
+    // Cleanup
+    return () => window.removeEventListener("resize", updateHeight);
+  }, [isMobile]);
 
   // Detect language when text changes
   useEffect(() => {
