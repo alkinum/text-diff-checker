@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { FileDiff, Sparkle } from "lucide-react";
+import { FileDiff, Sparkle, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { computeLineDiff, detectLanguage, type FormattedDiff } from "@/utils/diff";
 import DualCodeView from "@/components/DualCodeView";
@@ -14,6 +14,7 @@ const DiffViewer: React.FC = () => {
   const [rightText, setRightText] = useState("");
   const [diff, setDiff] = useState<FormattedDiff | null>(null);
   const [language, setLanguage] = useState("plaintext");
+  const [isComparing, setIsComparing] = useState(false);
   const { toast } = useToast();
   const isMobile = useIsMobile();
 
@@ -32,7 +33,7 @@ const DiffViewer: React.FC = () => {
   }, [leftText, rightText]);
 
   // Function to compute differences
-  const handleCompare = () => {
+  const handleCompare = async () => {
     if (!leftText && !rightText) {
       toast({
         title: "Empty comparison",
@@ -43,8 +44,20 @@ const DiffViewer: React.FC = () => {
     }
 
     // Ensure we're using the current input values when comparing
-    const result = computeLineDiff(leftText, rightText);
-    setDiff(result);
+    try {
+      setIsComparing(true);
+      const result = await computeLineDiff(leftText, rightText);
+      setDiff(result);
+    } catch (error) {
+      console.error("Error computing diff:", error);
+      toast({
+        title: "Error computing diff",
+        description: "There was an error comparing the texts. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsComparing(false);
+    }
   };
 
   // Function to clear inputs
@@ -105,6 +118,7 @@ const DiffViewer: React.FC = () => {
               onClick={handleClear}
               className="btn-transition border-border/50"
               size={isMobile ? "sm" : "default"}
+              disabled={isComparing}
             >
               Clear
             </Button>
@@ -112,8 +126,16 @@ const DiffViewer: React.FC = () => {
               onClick={handleCompare}
               className="btn-transition bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary"
               size={isMobile ? "sm" : "default"}
+              disabled={isComparing}
             >
-              Compare
+              {isComparing ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Comparing...
+                </>
+              ) : (
+                "Compare"
+              )}
             </Button>
           </div>
         </div>

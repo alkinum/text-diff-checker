@@ -109,9 +109,13 @@ const DualCodeView: React.FC<DualCodeViewProps> = ({
 
   // Calculate accurate diff statistics
   const calculateStats = () => {
+    // Ensure that diff.left and diff.right are arrays before filtering
+    const leftLines = Array.isArray(diff.left) ? diff.left : [];
+    const rightLines = Array.isArray(diff.right) ? diff.right : [];
+
     // Only count real lines (not spacers)
-    const realLeftLines = diff.left.filter(line => !line.spacer);
-    const realRightLines = diff.right.filter(line => !line.spacer);
+    const realLeftLines = leftLines.filter(line => !line.spacer);
+    const realRightLines = rightLines.filter(line => !line.spacer);
 
     // Get removed lines from left side
     const removedCount = realLeftLines.filter(line => line.removed && !line.modified).length;
