@@ -36,36 +36,186 @@ interface LineDiffResult {
   count?: number;
 }
 
+// 智能选择diff策略，根据文本大小和类型
+function shouldUseWorkerForDiff(textLength: number): boolean {
+  // 小文本直接同步处理
+  if (textLength < 5000) return false;
+
+  // 中等文本使用worker
+  if (textLength < 200000) return supportsWorker;
+
+  // 超大文本需要特殊处理
+  return false;
+}
+
+// 计算动态超时时间
+function calculateDiffTimeout(textLength: number): number {
+  const baseTimeout = 5000; // 基础5秒
+  const lengthFactor = Math.min(textLength / 20000, 10); // 每20K增加时间，最多10倍
+  return baseTimeout + (lengthFactor * 3000); // 最多35秒
+}
+
+// 文本预处理：移除不必要的空白和标准化换行符
+function preprocessText(text: string): string {
+  if (!text) return text;
+
+  // 标准化换行符
+  let processed = text.replace(/\r\n|\r/g, '\n');
+
+  // 移除文件末尾多余的空行（但保留一个空行如果原本就有）
+  const hasTrailingNewline = processed.endsWith('\n');
+  processed = processed.replace(/\n+$/, '');
+  if (hasTrailingNewline) {
+    processed += '\n';
+  }
+
+  return processed;
+}
+
 // Process line diff calculation in Web Worker with optimized pooling
 async function processLineDiffInWorker(oldText: string, newText: string): Promise<LineDiffResult[]> {
   // Quick optimization: if texts are identical, return early
   if (oldText === newText) {
     return oldText ? [{ value: oldText }] : [];
   }
-  
-  // For very large texts, prefer sync mode to avoid timeout issues
+
   const totalLength = oldText.length + newText.length;
-  if (totalLength > 100000) { // 100KB threshold
-    console.warn(`Text too large (${totalLength} chars), using sync diff for better reliability`);
+
+  // 智能决策是否使用worker
+  if (!shouldUseWorkerForDiff(totalLength)) {
     return diffLines(oldText, newText);
   }
-  
+
+  // 对于超大文本，使用分块策略
+  if (totalLength > 500000) { // 500KB阈值
+    console.warn(`Text extremely large (${totalLength} chars), using chunked line diff`);
+    return processChunkedLineDiff(oldText, newText);
+  }
+
   try {
-    // Use the new worker pool manager
-    const result = await processDiffWithWorker<LineDiffResult[]>('diffLines', oldText, newText);
+    const timeout = calculateDiffTimeout(totalLength);
+    const result = await Promise.race([
+      processDiffWithWorker<LineDiffResult[]>('diffLines', oldText, newText),
+      new Promise<never>((_, reject) => {
+        setTimeout(() => reject(new Error('Line diff timeout')), timeout);
+      })
+    ]);
     return result;
   } catch (e) {
-    console.warn('Worker diff failed, falling back to sync mode:', e instanceof Error ? e.message : 'Unknown error');
-    // Fall back to sync mode when Worker fails
+    console.warn('Worker line diff failed, falling back to sync mode:', e instanceof Error ? e.message : 'Unknown error');
+    // 对于失败的大文本，尝试分块处理
+    if (totalLength > 100000) {
+      return processChunkedLineDiff(oldText, newText);
+    }
     return diffLines(oldText, newText);
+  }
+}
+
+// 分块行级diff处理
+async function processChunkedLineDiff(oldText: string, newText: string): Promise<LineDiffResult[]> {
+  const oldLines = oldText.split('\n');
+  const newLines = newText.split('\n');
+
+  // 如果行数不是很多，直接处理
+  if (oldLines.length + newLines.length < 10000) {
+    return diffLines(oldText, newText);
+  }
+
+  // 寻找共同的开头和结尾行
+  let commonStart = 0;
+  let commonEnd = 0;
+  const minLines = Math.min(oldLines.length, newLines.length);
+
+  // 找共同开头行
+  while (commonStart < minLines && oldLines[commonStart] === newLines[commonStart]) {
+    commonStart++;
+  }
+
+  // 找共同结尾行
+  while (commonEnd < minLines - commonStart &&
+         oldLines[oldLines.length - 1 - commonEnd] === newLines[newLines.length - 1 - commonEnd]) {
+    commonEnd++;
+  }
+
+  const result: LineDiffResult[] = [];
+
+  // 添加共同开头
+  for (let i = 0; i < commonStart; i++) {
+    result.push({ value: oldLines[i] + '\n' });
+  }
+
+  // 处理中间差异部分
+  const oldMiddleLines = oldLines.slice(commonStart, oldLines.length - commonEnd);
+  const newMiddleLines = newLines.slice(commonStart, newLines.length - commonEnd);
+
+  if (oldMiddleLines.length > 0 || newMiddleLines.length > 0) {
+    const oldMiddleText = oldMiddleLines.join('\n') + (oldMiddleLines.length > 0 ? '\n' : '');
+    const newMiddleText = newMiddleLines.join('\n') + (newMiddleLines.length > 0 ? '\n' : '');
+
+    // 对中间部分进行diff
+    try {
+      const middleDiff = await processDiffWithWorker<LineDiffResult[]>('diffLines', oldMiddleText, newMiddleText);
+      result.push(...middleDiff);
+    } catch (e) {
+      // 如果worker失败，使用简单的删除/添加策略
+      if (oldMiddleText) {
+        result.push({ value: oldMiddleText, removed: true });
+      }
+      if (newMiddleText) {
+        result.push({ value: newMiddleText, added: true });
+      }
+    }
+  }
+
+  // 添加共同结尾
+  for (let i = oldLines.length - commonEnd; i < oldLines.length; i++) {
+    result.push({ value: oldLines[i] + '\n' });
+  }
+
+  return result;
+}
+
+// 内存优化的行处理函数
+function processLinesInBatches<T>(
+  lines: T[],
+  batchSize: number,
+  processor: (batch: T[], startIndex: number) => void
+): void {
+  for (let i = 0; i < lines.length; i += batchSize) {
+    const batch = lines.slice(i, i + batchSize);
+    processor(batch, i);
   }
 }
 
 // Main function to compute line-by-line differences with proper alignment
 export async function computeLineDiff(oldText: string, newText: string): Promise<FormattedDiff> {
-  // First, split both texts into lines
-  const oldLines = oldText.split('\n');
-  const newLines = newText.split('\n');
+  // 预处理文本
+  const processedOldText = preprocessText(oldText);
+  const processedNewText = preprocessText(newText);
+
+  // Early return for identical texts
+  if (processedOldText === processedNewText) {
+    const lines = processedOldText.split('\n');
+    const leftLines: DiffResultWithLineNumbers[] = [];
+    const rightLines: DiffResultWithLineNumbers[] = [];
+
+    lines.forEach((line, index) => {
+      leftLines.push({
+        value: line,
+        lineNumber: index + 1
+      });
+      rightLines.push({
+        value: line,
+        lineNumber: index + 1
+      });
+    });
+
+    return { left: leftLines, right: rightLines };
+  }
+
+  // Split both texts into lines
+  const oldLines = processedOldText.split('\n');
+  const newLines = processedNewText.split('\n');
 
   // Create arrays to store the aligned line-by-line diff result
   const leftLines: DiffResultWithLineNumbers[] = [];
@@ -77,13 +227,20 @@ export async function computeLineDiff(oldText: string, newText: string): Promise
   // Get the diff results - use Worker async calculation if available
   let changes: LineDiffResult[];
   try {
-    changes = await processLineDiffInWorker(oldText, newText);
+    changes = await processLineDiffInWorker(processedOldText, processedNewText);
   } catch (e) {
-    console.error('Worker diff calculation failed, falling back to sync mode:', e);
-    changes = diffLines(oldText, newText);
+    console.error('Line diff calculation failed, falling back to simple strategy:', e);
+    // 极端情况下的简单fallback
+    return generateSimpleDiff(processedOldText, processedNewText);
   }
 
-  // First pass: identify adjacent removed/added pairs to mark them as modified instead
+  // Validate changes result
+  if (!changes || changes.length === 0) {
+    return generateSimpleDiff(processedOldText, processedNewText);
+  }
+
+  // Process changes in batches for memory efficiency
+  const BATCH_SIZE = 1000; // 每批处理1000个change
   const processedChanges = [];
   let i = 0;
 
@@ -91,9 +248,8 @@ export async function computeLineDiff(oldText: string, newText: string): Promise
     const current = changes[i];
     const next = i + 1 < changes.length ? changes[i + 1] : null;
 
-    // If we have a removed line followed by an added line, we'll treat it as a modification
+    // If we have a removed line followed by an added line, treat as modification
     if (current.removed && next && next.added) {
-      // Create a modified change that combines both (will be handled specially)
       processedChanges.push({
         modified: true,
         oldValue: current.value,
@@ -101,156 +257,154 @@ export async function computeLineDiff(oldText: string, newText: string): Promise
       });
       i += 2; // Skip the next change since we've processed it
     } else {
-      // Keep the original change
       processedChanges.push(current);
       i++;
     }
   }
 
-  // Process each change
-  for (const part of processedChanges) {
-    if (part.modified) {
-      // This is our special case for modifications
-      const oldLines = part.oldValue.split('\n');
-      const newLines = part.newValue.split('\n');
+  // Process each change with memory optimization
+  processLinesInBatches(processedChanges, BATCH_SIZE, (batch) => {
+    for (const part of batch) {
+      if (part.modified) {
+        // Handle modifications line by line with proper alignment
+        const oldPartLines = part.oldValue.split('\n');
+        const newPartLines = part.newValue.split('\n');
 
-      // Calculate actual number of lines (excluding empty trailing lines)
-      const oldLineCount = oldLines.length > 0 && oldLines[oldLines.length - 1] === '' ?
-        oldLines.length - 1 : oldLines.length;
-      const newLineCount = newLines.length > 0 && newLines[newLines.length - 1] === '' ?
-        newLines.length - 1 : newLines.length;
+        // Calculate actual number of lines (excluding empty trailing lines)
+        const oldLineCount = oldPartLines.length > 0 && oldPartLines[oldPartLines.length - 1] === '' ?
+          oldPartLines.length - 1 : oldPartLines.length;
+        const newLineCount = newPartLines.length > 0 && newPartLines[newPartLines.length - 1] === '' ?
+          newPartLines.length - 1 : newPartLines.length;
 
-      // Handle modifications line by line with proper alignment
-      const minLines = Math.min(oldLineCount, newLineCount);
+        const minLines = Math.min(oldLineCount, newLineCount);
 
-      // First, add paired modified lines
-      for (let i = 0; i < minLines; i++) {
-        if (oldLines[i] === '' && i === oldLineCount - 1 &&
-          newLines[i] === '' && i === newLineCount - 1) {
-          continue; // Skip empty trailing lines
+        // Add paired modified lines
+        for (let i = 0; i < minLines; i++) {
+          if (oldPartLines[i] === '' && i === oldLineCount - 1 &&
+            newPartLines[i] === '' && i === newLineCount - 1) {
+            continue;
+          }
+
+          leftLines.push({
+            value: oldPartLines[i],
+            removed: true,
+            lineNumber: leftLineNumber++,
+            modified: true
+          });
+
+          rightLines.push({
+            value: newPartLines[i],
+            added: true,
+            lineNumber: rightLineNumber++,
+            modified: true
+          });
         }
 
-        leftLines.push({
-          value: oldLines[i],
-          removed: true,
-          lineNumber: leftLineNumber++,
-          modified: true
-        });
+        // Handle remaining lines in the old text
+        for (let i = minLines; i < oldLineCount; i++) {
+          leftLines.push({
+            value: oldPartLines[i],
+            removed: true,
+            lineNumber: leftLineNumber++
+          });
 
-        rightLines.push({
-          value: newLines[i],
-          added: true,
-          lineNumber: rightLineNumber++,
-          modified: true
-        });
-      }
+          rightLines.push({
+            value: '',
+            lineNumber: -1,
+            spacer: true
+          });
+        }
 
-      // Then handle any remaining lines in the old text
-      for (let i = minLines; i < oldLineCount; i++) {
-        leftLines.push({
-          value: oldLines[i],
-          removed: true,
-          lineNumber: leftLineNumber++
-        });
+        // Handle remaining lines in the new text
+        for (let i = minLines; i < newLineCount; i++) {
+          leftLines.push({
+            value: '',
+            lineNumber: -1,
+            spacer: true
+          });
 
-        rightLines.push({
-          value: '',
-          lineNumber: -1,
-          spacer: true
-        });
-      }
+          rightLines.push({
+            value: newPartLines[i],
+            added: true,
+            lineNumber: rightLineNumber++
+          });
+        }
+      } else if (part.added) {
+        // Added lines
+        const lines = part.value.split('\n');
+        const lineCount = lines.length > 0 && lines[lines.length - 1] === '' ?
+          lines.length - 1 : lines.length;
 
-      // Then handle any remaining lines in the new text
-      for (let i = minLines; i < newLineCount; i++) {
-        leftLines.push({
-          value: '',
-          lineNumber: -1,
-          spacer: true
-        });
+        for (let i = 0; i < lineCount; i++) {
+          leftLines.push({
+            value: '',
+            lineNumber: -1,
+            spacer: true
+          });
 
-        rightLines.push({
-          value: newLines[i],
-          added: true,
-          lineNumber: rightLineNumber++
-        });
-      }
-    } else if (part.added) {
-      // Added lines
-      const lines = part.value.split('\n');
-      const lineCount = lines.length > 0 && lines[lines.length - 1] === '' ?
-        lines.length - 1 : lines.length;
+          rightLines.push({
+            value: lines[i],
+            added: true,
+            lineNumber: rightLineNumber++
+          });
+        }
+      } else if (part.removed) {
+        // Removed lines
+        const lines = part.value.split('\n');
+        const lineCount = lines.length > 0 && lines[lines.length - 1] === '' ?
+          lines.length - 1 : lines.length;
 
-      for (let i = 0; i < lineCount; i++) {
-        // Add a spacer in left side
-        leftLines.push({
-          value: '',
-          lineNumber: -1,
-          spacer: true
-        });
+        for (let i = 0; i < lineCount; i++) {
+          leftLines.push({
+            value: lines[i],
+            removed: true,
+            lineNumber: leftLineNumber++
+          });
 
-        // Add the line on right side
-        rightLines.push({
-          value: lines[i],
-          added: true,
-          lineNumber: rightLineNumber++
-        });
-      }
-    } else if (part.removed) {
-      // Removed lines
-      const lines = part.value.split('\n');
-      const lineCount = lines.length > 0 && lines[lines.length - 1] === '' ?
-        lines.length - 1 : lines.length;
+          rightLines.push({
+            value: '',
+            lineNumber: -1,
+            spacer: true
+          });
+        }
+      } else {
+        // Unchanged lines
+        const lines = part.value.split('\n');
+        const lineCount = lines.length > 0 && lines[lines.length - 1] === '' ?
+          lines.length - 1 : lines.length;
 
-      for (let i = 0; i < lineCount; i++) {
-        // Add the line on left side
-        leftLines.push({
-          value: lines[i],
-          removed: true,
-          lineNumber: leftLineNumber++
-        });
+        for (let i = 0; i < lineCount; i++) {
+          leftLines.push({
+            value: lines[i],
+            lineNumber: leftLineNumber++
+          });
 
-        // Add a spacer in right side
-        rightLines.push({
-          value: '',
-          lineNumber: -1,
-          spacer: true
-        });
-      }
-    } else {
-      // Unchanged lines
-      const lines = part.value.split('\n');
-      const lineCount = lines.length > 0 && lines[lines.length - 1] === '' ?
-        lines.length - 1 : lines.length;
-
-      for (let i = 0; i < lineCount; i++) {
-        // Add unchanged line to both sides
-        leftLines.push({
-          value: lines[i],
-          lineNumber: leftLineNumber++
-        });
-
-        rightLines.push({
-          value: lines[i],
-          lineNumber: rightLineNumber++
-        });
+          rightLines.push({
+            value: lines[i],
+            lineNumber: rightLineNumber++
+          });
+        }
       }
     }
-  }
+  });
 
-  // Validate line counts
+  // Validate line counts to prevent infinite loops or errors
   const actualLeftLines = leftLines.filter(line => !line.spacer).length;
   const actualRightLines = rightLines.filter(line => !line.spacer).length;
 
-  // Safety check: ensure we don't have more removed lines than actual original lines
+  // Safety check
   const leftRemoved = leftLines.filter(line => line.removed).length;
-  if (leftRemoved > oldLines.length) {
-    console.warn("Diff calculation error: More removed lines than original text lines");
-    // If we have an error in calculation, we'll regenerate a simpler diff
-    return generateSimpleDiff(oldText, newText);
+  if (leftRemoved > oldLines.length * 1.5) { // Allow some tolerance
+    console.warn("Diff calculation error: Excessive removed lines detected, using simple diff");
+    return generateSimpleDiff(processedOldText, processedNewText);
   }
 
   // Apply character-level diffs for modified lines
-  await applyWordDiffs(leftLines, rightLines);
+  try {
+    await applyWordDiffs(leftLines, rightLines);
+  } catch (e) {
+    console.warn('Word diff application failed, continuing with line-level diff only:', e);
+  }
 
   return { left: leftLines, right: rightLines };
 }

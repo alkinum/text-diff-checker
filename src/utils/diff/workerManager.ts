@@ -15,107 +15,168 @@ interface WorkerMessage {
 // Worker pool for reusing workers
 let diffWorkerPool: Worker[] = [];
 let currentWorkerIndex = 0;
-const MAX_WORKERS = 2; // Use 2 workers for better parallel processing
+const MAX_WORKERS = navigator.hardwareConcurrency || 4; // 根据CPU核心数动态调整
 const workerInitPromises = new Map<Worker, Promise<boolean>>();
+const workerBusyStatus = new Map<Worker, boolean>(); // 跟踪worker繁忙状态
 
-// Worker script code - optimized with preloaded library
+// Worker script code - 进一步优化
 const workerScript = `
-  // Define fallback diff functions
+  // 高性能fallback diff函数
   const fallbackDiff = {
     diffLines: function(oldStr, newStr) {
+      // 早期退出优化
+      if (oldStr === newStr) {
+        return oldStr ? [{ value: oldStr }] : [];
+      }
+
       const oldLines = oldStr.split('\\n');
       const newLines = newStr.split('\\n');
       const result = [];
 
-      // Simple line comparison implementation as fallback
-      let oldIndex = 0;
-      let newIndex = 0;
+      // 优化的行比较，使用LCS算法的简化版本
+      const minLines = Math.min(oldLines.length, newLines.length);
+      let commonStart = 0;
+      let commonEnd = 0;
 
-      while (oldIndex < oldLines.length || newIndex < newLines.length) {
-        if (oldIndex >= oldLines.length) {
-          result.push({ value: newLines[newIndex] + '\\n', added: true });
-          newIndex++;
-        } else if (newIndex >= newLines.length) {
-          result.push({ value: oldLines[oldIndex] + '\\n', removed: true });
-          oldIndex++;
-        } else if (oldLines[oldIndex] === newLines[newIndex]) {
-          result.push({ value: oldLines[oldIndex] + '\\n' });
-          oldIndex++;
-          newIndex++;
-        } else {
-          result.push({ value: oldLines[oldIndex] + '\\n', removed: true });
-          result.push({ value: newLines[newIndex] + '\\n', added: true });
-          oldIndex++;
-          newIndex++;
-        }
+      // 找到共同开头
+      while (commonStart < minLines && oldLines[commonStart] === newLines[commonStart]) {
+        commonStart++;
+      }
+
+      // 找到共同结尾
+      while (commonEnd < minLines - commonStart &&
+             oldLines[oldLines.length - 1 - commonEnd] === newLines[newLines.length - 1 - commonEnd]) {
+        commonEnd++;
+      }
+
+      // 添加共同开头
+      for (let i = 0; i < commonStart; i++) {
+        result.push({ value: oldLines[i] + '\\n' });
+      }
+
+      // 处理中间的差异部分
+      const oldMiddleStart = commonStart;
+      const oldMiddleEnd = oldLines.length - commonEnd;
+      const newMiddleStart = commonStart;
+      const newMiddleEnd = newLines.length - commonEnd;
+
+      // 添加删除的行
+      for (let i = oldMiddleStart; i < oldMiddleEnd; i++) {
+        result.push({ value: oldLines[i] + '\\n', removed: true });
+      }
+
+      // 添加新增的行
+      for (let i = newMiddleStart; i < newMiddleEnd; i++) {
+        result.push({ value: newLines[i] + '\\n', added: true });
+      }
+
+      // 添加共同结尾
+      for (let i = oldLines.length - commonEnd; i < oldLines.length; i++) {
+        result.push({ value: oldLines[i] + '\\n' });
       }
 
       return result;
     },
 
     diffWords: function(oldStr, newStr) {
-      const oldWords = oldStr.split(/\\s+/);
-      const newWords = newStr.split(/\\s+/);
+      // 早期退出优化
+      if (oldStr === newStr) {
+        return oldStr ? [{ value: oldStr }] : [];
+      }
+
+      // 使用更智能的分词策略
+      const wordRegex = /\\S+|\\s+/g;
+      const oldWords = oldStr.match(wordRegex) || [];
+      const newWords = newStr.match(wordRegex) || [];
+
+      return this.computeWordDiff(oldWords, newWords);
+    },
+
+    diffChars: function(oldStr, newStr) {
+      // 早期退出优化
+      if (oldStr === newStr) {
+        return oldStr ? [{ value: oldStr }] : [];
+      }
+
+      // 对于长字符串使用优化算法
+      if (oldStr.length + newStr.length > 1000) {
+        return this.computeOptimizedCharDiff(oldStr, newStr);
+      }
+
+      // 标准字符diff
+      return this.computeCharDiff(oldStr, newStr);
+    },
+
+    // 优化的单词diff算法
+    computeWordDiff: function(oldWords, newWords) {
       const result = [];
+      const minLength = Math.min(oldWords.length, newWords.length);
+      let commonStart = 0;
+      let commonEnd = 0;
 
-      // Simple word comparison implementation
-      let oldIndex = 0;
-      let newIndex = 0;
+      // 找到共同开头
+      while (commonStart < minLength && oldWords[commonStart] === newWords[commonStart]) {
+        commonStart++;
+      }
 
-      while (oldIndex < oldWords.length || newIndex < newWords.length) {
-        if (oldIndex >= oldWords.length) {
-          result.push({ value: newWords[newIndex], added: true });
-          newIndex++;
-        } else if (newIndex >= newWords.length) {
-          result.push({ value: oldWords[oldIndex], removed: true });
-          oldIndex++;
-        } else if (oldWords[oldIndex] === newWords[newIndex]) {
-          result.push({ value: oldWords[oldIndex] });
-          oldIndex++;
-          newIndex++;
-        } else {
-          result.push({ value: oldWords[oldIndex], removed: true });
-          result.push({ value: newWords[newIndex], added: true });
-          oldIndex++;
-          newIndex++;
-        }
+      // 找到共同结尾
+      while (commonEnd < minLength - commonStart &&
+             oldWords[oldWords.length - 1 - commonEnd] === newWords[newWords.length - 1 - commonEnd]) {
+        commonEnd++;
+      }
+
+      // 添加共同开头
+      for (let i = 0; i < commonStart; i++) {
+        result.push({ value: oldWords[i] });
+      }
+
+      // 处理中间差异
+      const oldMiddle = oldWords.slice(commonStart, oldWords.length - commonEnd);
+      const newMiddle = newWords.slice(commonStart, newWords.length - commonEnd);
+
+      if (oldMiddle.length > 0) {
+        result.push({ value: oldMiddle.join(''), removed: true });
+      }
+      if (newMiddle.length > 0) {
+        result.push({ value: newMiddle.join(''), added: true });
+      }
+
+      // 添加共同结尾
+      for (let i = oldWords.length - commonEnd; i < oldWords.length; i++) {
+        result.push({ value: oldWords[i] });
       }
 
       return result;
     },
 
-    diffChars: function(oldStr, newStr) {
-      // Optimized character diff for better performance
+    // 优化的字符diff算法
+    computeOptimizedCharDiff: function(oldStr, newStr) {
       const result = [];
       let oldIndex = 0;
       let newIndex = 0;
-      let commonStart = '';
-      let commonEnd = '';
 
-      // Find common prefix to avoid unnecessary character comparisons
+      // 找共同前缀
       while (oldIndex < oldStr.length && newIndex < newStr.length &&
              oldStr[oldIndex] === newStr[newIndex]) {
-        commonStart += oldStr[oldIndex];
         oldIndex++;
         newIndex++;
       }
 
-      // Find common suffix
+      // 找共同后缀
       let oldEnd = oldStr.length - 1;
       let newEnd = newStr.length - 1;
       while (oldEnd >= oldIndex && newEnd >= newIndex &&
              oldStr[oldEnd] === newStr[newEnd]) {
-        commonEnd = oldStr[oldEnd] + commonEnd;
         oldEnd--;
         newEnd--;
       }
 
-      // Add common prefix
-      if (commonStart) {
-        result.push({ value: commonStart });
+      // 添加共同前缀
+      if (oldIndex > 0) {
+        result.push({ value: oldStr.substring(0, oldIndex) });
       }
 
-      // Add different middle part
+      // 添加差异部分
       const oldMiddle = oldStr.substring(oldIndex, oldEnd + 1);
       const newMiddle = newStr.substring(newIndex, newEnd + 1);
 
@@ -126,31 +187,98 @@ const workerScript = `
         result.push({ value: newMiddle, added: true });
       }
 
-      // Add common suffix
-      if (commonEnd) {
-        result.push({ value: commonEnd });
+      // 添加共同后缀
+      if (oldEnd + 1 < oldStr.length) {
+        result.push({ value: oldStr.substring(oldEnd + 1) });
       }
 
       return result.length > 0 ? result : [{ value: oldStr }];
+    },
+
+    // 标准字符diff
+    computeCharDiff: function(oldStr, newStr) {
+      const result = [];
+      const dp = Array(oldStr.length + 1).fill(null).map(() => Array(newStr.length + 1).fill(0));
+
+      // 简化的动态规划算法
+      for (let i = 0; i <= oldStr.length; i++) dp[i][0] = i;
+      for (let j = 0; j <= newStr.length; j++) dp[0][j] = j;
+
+      for (let i = 1; i <= oldStr.length; i++) {
+        for (let j = 1; j <= newStr.length; j++) {
+          if (oldStr[i-1] === newStr[j-1]) {
+            dp[i][j] = dp[i-1][j-1];
+          } else {
+            dp[i][j] = Math.min(dp[i-1][j], dp[i][j-1], dp[i-1][j-1]) + 1;
+          }
+        }
+      }
+
+      // 回溯构建结果
+      let i = oldStr.length;
+      let j = newStr.length;
+      const ops = [];
+
+      while (i > 0 || j > 0) {
+        if (i > 0 && j > 0 && oldStr[i-1] === newStr[j-1]) {
+          ops.unshift({ type: 'equal', char: oldStr[i-1] });
+          i--;
+          j--;
+        } else if (i > 0 && (j === 0 || dp[i-1][j] <= dp[i][j-1])) {
+          ops.unshift({ type: 'delete', char: oldStr[i-1] });
+          i--;
+        } else {
+          ops.unshift({ type: 'insert', char: newStr[j-1] });
+          j--;
+        }
+      }
+
+      // 合并连续操作
+      let currentValue = '';
+      let currentType = null;
+
+      for (const op of ops) {
+        if (op.type === currentType) {
+          currentValue += op.char;
+        } else {
+          if (currentValue) {
+            const diffPart = { value: currentValue };
+            if (currentType === 'delete') diffPart.removed = true;
+            if (currentType === 'insert') diffPart.added = true;
+            result.push(diffPart);
+          }
+          currentValue = op.char;
+          currentType = op.type;
+        }
+      }
+
+      if (currentValue) {
+        const diffPart = { value: currentValue };
+        if (currentType === 'delete') diffPart.removed = true;
+        if (currentType === 'insert') diffPart.added = true;
+        result.push(diffPart);
+      }
+
+      return result;
     }
   };
 
   let Diff = null;
   let isInitialized = false;
 
-  // Optimized library loading with immediate fallback
+  // 更快的初始化，更短的CDN超时
   const initializeDiff = () => {
     if (isInitialized) return Promise.resolve();
 
     return new Promise((resolve) => {
       try {
-        // Try to load from CDN with shorter timeout
+        // 更短的CDN超时，更快的fallback
         const timeout = setTimeout(() => {
           console.warn('CDN loading timeout, using optimized fallback diff implementation');
           Diff = fallbackDiff;
           isInitialized = true;
           resolve();
-        }, 3000); // Reduced to 3 seconds for faster fallback
+        }, 2000); // 减少到2秒
 
         importScripts('https://cdnjs.cloudflare.com/ajax/libs/jsdiff/5.0.0/diff.min.js');
         clearTimeout(timeout);
@@ -219,6 +347,15 @@ const workerScript = `
 `;
 
 /**
+ * 计算基于文本长度的动态超时时间
+ */
+function calculateTimeout(textLength: number): number {
+  const baseTimeout = 3000; // 基础3秒
+  const lengthFactor = Math.min(textLength / 10000, 5); // 每10K字符增加时间，最多5倍
+  return baseTimeout + (lengthFactor * 2000); // 最多13秒
+}
+
+/**
  * Create and return diff calculation Worker with initialization
  * @returns Promise resolving to initialized Worker instance
  */
@@ -231,12 +368,15 @@ async function createInitializedWorker(): Promise<Worker | null> {
     const blob = new Blob([workerScript], { type: 'application/javascript' });
     const worker = new Worker(URL.createObjectURL(blob));
 
-    // Wait for worker initialization
+    // 标记为未繁忙
+    workerBusyStatus.set(worker, false);
+
+    // 更短的初始化超时
     const initPromise = new Promise<boolean>((resolve) => {
       const timeout = setTimeout(() => {
         console.warn('Worker initialization timeout');
         resolve(false);
-      }, 5000);
+      }, 3000); // 减少到3秒
 
       worker.onmessage = function(e) {
         if (e.data.type === 'init' && e.data.ready) {
@@ -265,26 +405,29 @@ async function createInitializedWorker(): Promise<Worker | null> {
  * @returns Available Worker instance or null
  */
 export async function getAvailableWorker(): Promise<Worker | null> {
-  // Initialize worker pool if empty
-  if (diffWorkerPool.length === 0) {
-    const initPromises = [];
-    for (let i = 0; i < MAX_WORKERS; i++) {
-      initPromises.push(createInitializedWorker());
-    }
-
-    const workers = await Promise.all(initPromises);
-    diffWorkerPool = workers.filter(w => w !== null) as Worker[];
-
-    if (diffWorkerPool.length === 0) {
-      return null;
+  // 首先尝试找到不繁忙的worker
+  for (const worker of diffWorkerPool) {
+    if (!workerBusyStatus.get(worker)) {
+      return worker;
     }
   }
 
-  // Use round-robin to get next worker
-  const worker = diffWorkerPool[currentWorkerIndex];
-  currentWorkerIndex = (currentWorkerIndex + 1) % diffWorkerPool.length;
+  // 如果没有可用的worker且pool未满，创建新的
+  if (diffWorkerPool.length < MAX_WORKERS) {
+    const newWorker = await createInitializedWorker();
+    if (newWorker) {
+      diffWorkerPool.push(newWorker);
+      return newWorker;
+    }
+  }
 
-  return worker;
+  // 如果pool已满且都繁忙，返回第一个worker（会等待它完成）
+  if (diffWorkerPool.length > 0) {
+    currentWorkerIndex = (currentWorkerIndex + 1) % diffWorkerPool.length;
+    return diffWorkerPool[currentWorkerIndex];
+  }
+
+  return null;
 }
 
 /**
@@ -304,12 +447,14 @@ export function terminateDiffWorker(): void {
     worker.terminate();
   });
   diffWorkerPool = [];
+  workerBusyStatus.clear();
+  workerInitPromises.clear();
   currentWorkerIndex = 0;
   console.log('All Diff Workers terminated');
 }
 
 /**
- * Process diff calculation using Worker with optimized pooling
+ * Process diff calculation using Worker with optimized pooling and dynamic timeout
  * @param task Task type
  * @param oldText Old text
  * @param newText New text
@@ -331,17 +476,25 @@ export function processDiffWithWorker<T>(
     }
 
     return new Promise<T>((resolve, reject) => {
-      // Shorter timeout for better responsiveness
+      // 根据文本长度计算动态超时时间
+      const textLength = oldText.length + newText.length;
       const timeout = setTimeout(() => {
-        reject(new Error('Worker timeout after 10 seconds'));
-      }, 10000); // Reduced to 10 seconds
+        // 标记worker为不繁忙
+        workerBusyStatus.set(worker, false);
+        reject(new Error(`Worker timeout after ${calculateTimeout(textLength)}ms for text length ${textLength}`));
+      }, calculateTimeout(textLength));
 
       let isResolved = false;
+
+      // 标记worker为繁忙
+      workerBusyStatus.set(worker, true);
 
       const cleanup = () => {
         if (timeout) {
           clearTimeout(timeout);
         }
+        // 标记worker为不繁忙
+        workerBusyStatus.set(worker, false);
         isResolved = true;
       };
 

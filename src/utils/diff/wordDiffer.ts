@@ -2,44 +2,74 @@ import { diffChars, diffWords } from 'diff';
 import { DiffResultWithLineNumbers } from './types';
 import { processDiffWithWorker } from './workerManager';
 
-// 判断两个单词的相似度
+// 优化的相似度计算 - 使用早期退出和长度预检查
 function calculateSimilarity(str1: string, str2: string): number {
   if (str1 === str2) return 1;
   if (str1.length === 0 || str2.length === 0) return 0;
 
-  // 使用莱文斯坦距离计算相似度
-  const matrix: number[][] = [];
+  // 长度差异过大时直接返回低相似度
+  const lengthDiff = Math.abs(str1.length - str2.length);
+  const maxLength = Math.max(str1.length, str2.length);
+  if (lengthDiff / maxLength > 0.5) return 0;
 
-  // 初始化矩阵
-  for (let i = 0; i <= str1.length; i++) {
-    matrix[i] = [i];
+  // 对于长字符串，使用采样比较
+  if (str1.length > 100 || str2.length > 100) {
+    return calculateSamplingSimilarity(str1, str2);
   }
 
-  for (let j = 0; j <= str2.length; j++) {
-    matrix[0][j] = j;
+  // 使用优化的莱文斯坦距离，带早期退出
+  return calculateOptimizedLevenshtein(str1, str2);
+}
+
+// 采样相似度计算，用于长字符串
+function calculateSamplingSimilarity(str1: string, str2: string): number {
+  const sampleSize = Math.min(50, str1.length, str2.length);
+  const sample1 = str1.substring(0, sampleSize);
+  const sample2 = str2.substring(0, sampleSize);
+
+  let matches = 0;
+  for (let i = 0; i < sampleSize; i++) {
+    if (sample1[i] === sample2[i]) matches++;
   }
 
-  // 填充矩阵
-  for (let i = 1; i <= str1.length; i++) {
-    for (let j = 1; j <= str2.length; j++) {
-      if (str1.charAt(i - 1) === str2.charAt(j - 1)) {
-        matrix[i][j] = matrix[i - 1][j - 1];
+  return matches / sampleSize;
+}
+
+// 优化的莱文斯坦距离计算，使用滚动数组减少内存使用
+function calculateOptimizedLevenshtein(str1: string, str2: string): number {
+  const len1 = str1.length;
+  const len2 = str2.length;
+
+  // 使用两个一维数组而不是二维矩阵
+  let prevRow = new Array(len2 + 1);
+  let currRow = new Array(len2 + 1);
+
+  // 初始化第一行
+  for (let j = 0; j <= len2; j++) {
+    prevRow[j] = j;
+  }
+
+  for (let i = 1; i <= len1; i++) {
+    currRow[0] = i;
+
+    for (let j = 1; j <= len2; j++) {
+      if (str1[i - 1] === str2[j - 1]) {
+        currRow[j] = prevRow[j - 1];
       } else {
-        matrix[i][j] = Math.min(
-          matrix[i - 1][j - 1] + 1, // 替换
-          Math.min(
-            matrix[i][j - 1] + 1,   // 插入
-            matrix[i - 1][j] + 1    // 删除
-          )
+        currRow[j] = Math.min(
+          prevRow[j - 1] + 1, // 替换
+          prevRow[j] + 1,     // 删除
+          currRow[j - 1] + 1  // 插入
         );
       }
     }
+
+    // 交换数组引用
+    [prevRow, currRow] = [currRow, prevRow];
   }
 
-  // 计算相似度
-  const distance = matrix[str1.length][str2.length];
-  const maxLength = Math.max(str1.length, str2.length);
-  return 1 - distance / maxLength;
+  const distance = prevRow[len2];
+  return 1 - distance / Math.max(len1, len2);
 }
 
 // 定义差异部分的接口
@@ -52,25 +82,76 @@ interface DiffPart {
 // 定义差异结果的类型
 type DiffResult = DiffPart[];
 
-// 缓存计算结果，避免重复计算
-const diffCache = new Map<string, DiffResult>();
-const MAX_CACHE_SIZE = 200; // Increased cache size
-const MAX_CACHE_KEY_LENGTH = 2000; // Increased cache key length limit
-const cacheStats = { hits: 0, misses: 0 }; // Track cache performance
+// 真正的LRU缓存实现
+class LRUCache<K, V> {
+  private cache = new Map<K, V>();
+  private maxSize: number;
 
-// 智能缓存键生成，使用内容哈希而不是完整文本
+  constructor(maxSize: number) {
+    this.maxSize = maxSize;
+  }
+
+  get(key: K): V | undefined {
+    const value = this.cache.get(key);
+    if (value !== undefined) {
+      // 重新设置以更新LRU顺序
+      this.cache.delete(key);
+      this.cache.set(key, value);
+    }
+    return value;
+  }
+
+  set(key: K, value: V): void {
+    if (this.cache.has(key)) {
+      this.cache.delete(key);
+    } else if (this.cache.size >= this.maxSize) {
+      // 删除最老的元素
+      const firstKey = this.cache.keys().next().value;
+      this.cache.delete(firstKey);
+    }
+    this.cache.set(key, value);
+  }
+
+  has(key: K): boolean {
+    return this.cache.has(key);
+  }
+
+  size(): number {
+    return this.cache.size;
+  }
+}
+
+// 使用LRU缓存
+const diffCache = new LRUCache<string, DiffResult>(500); // 增加缓存大小
+const MAX_CACHE_KEY_LENGTH = 1000; // 减少缓存键长度限制
+const cacheStats = { hits: 0, misses: 0 };
+
+// 更高效的缓存键生成，使用简单哈希
 function generateCacheKey(leftText: string, rightText: string, diffType: string): string {
   const totalLength = leftText.length + rightText.length;
 
-  // For short texts, use full content
   if (totalLength <= MAX_CACHE_KEY_LENGTH) {
     return `${leftText}|${rightText}|${diffType}`;
   }
 
-  // For longer texts, use a hash-like approach
-  const leftSample = leftText.substring(0, 100) + leftText.substring(leftText.length - 100);
-  const rightSample = rightText.substring(0, 100) + rightText.substring(rightText.length - 100);
-  return `${leftSample}|${rightSample}|${totalLength}|${diffType}`;
+  // 使用简单哈希而不是字符串拼接
+  const leftHash = simpleHash(leftText);
+  const rightHash = simpleHash(rightText);
+  return `${leftHash}:${rightHash}:${totalLength}:${diffType}`;
+}
+
+// 简单但快速的字符串哈希函数
+function simpleHash(str: string): number {
+  let hash = 0;
+  const step = Math.max(1, Math.floor(str.length / 100)); // 采样步长
+
+  for (let i = 0; i < str.length; i += step) {
+    const char = str.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash; // 转换为32位整数
+  }
+
+  return Math.abs(hash);
 }
 
 // 对文本进行差异比较，同时缓存结果
@@ -84,20 +165,125 @@ function cachedDiff(leftText: string, rightText: string, diffFn: typeof diffWord
 
   cacheStats.misses++;
 
-  // 如果缓存太大，使用LRU策略清理
-  if (diffCache.size >= MAX_CACHE_SIZE) {
-    const keysToDelete = Array.from(diffCache.keys()).slice(0, 50); // 删除50个最旧的条目
-    keysToDelete.forEach(key => diffCache.delete(key));
-  }
-
   const result = diffFn(leftText, rightText);
   diffCache.set(cacheKey, result);
   return result;
 }
 
+// 文本分块处理函数
+function chunkText(text: string, maxChunkSize: number): string[] {
+  if (text.length <= maxChunkSize) {
+    return [text];
+  }
+
+  const chunks: string[] = [];
+  const lines = text.split('\n');
+  let currentChunk = '';
+
+  for (const line of lines) {
+    if (currentChunk.length + line.length + 1 > maxChunkSize && currentChunk) {
+      chunks.push(currentChunk);
+      currentChunk = line;
+    } else {
+      currentChunk += (currentChunk ? '\n' : '') + line;
+    }
+  }
+
+  if (currentChunk) {
+    chunks.push(currentChunk);
+  }
+
+  return chunks;
+}
+
+// 分块diff处理
+async function computeChunkedDiff(leftText: string, rightText: string, type: 'words' | 'chars'): Promise<DiffResult> {
+  const CHUNK_SIZE = 10000; // 10KB 块大小
+
+  // 如果文本不是很长，直接处理
+  if (leftText.length + rightText.length <= CHUNK_SIZE * 2) {
+    return cachedDiff(leftText, rightText, type === 'words' ? diffWords : diffChars);
+  }
+
+  // 尝试找到共同的前缀和后缀，减少需要处理的内容
+  const { prefix, suffix, leftMiddle, rightMiddle } = extractCommonParts(leftText, rightText);
+
+  const middleResult: DiffResult = [];
+  if (leftMiddle || rightMiddle) {
+    // 对中间部分进行分块处理
+    const leftChunks = chunkText(leftMiddle, CHUNK_SIZE);
+    const rightChunks = chunkText(rightMiddle, CHUNK_SIZE);
+
+    // 简化处理：如果块数差异过大，使用简单diff
+    if (Math.abs(leftChunks.length - rightChunks.length) > 2) {
+      if (leftMiddle) middleResult.push({ value: leftMiddle, removed: true });
+      if (rightMiddle) middleResult.push({ value: rightMiddle, added: true });
+    } else {
+      // 逐块对比
+      const maxChunks = Math.max(leftChunks.length, rightChunks.length);
+      for (let i = 0; i < maxChunks; i++) {
+        const leftChunk = leftChunks[i] || '';
+        const rightChunk = rightChunks[i] || '';
+
+        if (leftChunk === rightChunk) {
+          if (leftChunk) middleResult.push({ value: leftChunk });
+        } else {
+          const chunkDiff = cachedDiff(leftChunk, rightChunk, type === 'words' ? diffWords : diffChars);
+          middleResult.push(...chunkDiff);
+        }
+      }
+    }
+  }
+
+  // 组合结果
+  const result: DiffResult = [];
+  if (prefix) result.push({ value: prefix });
+  result.push(...middleResult);
+  if (suffix) result.push({ value: suffix });
+
+  return result;
+}
+
+// 提取文本的共同前缀和后缀
+function extractCommonParts(str1: string, str2: string): {
+  prefix: string;
+  suffix: string;
+  leftMiddle: string;
+  rightMiddle: string;
+} {
+  let prefixEnd = 0;
+  const minLength = Math.min(str1.length, str2.length);
+
+  // 查找共同前缀
+  while (prefixEnd < minLength && str1[prefixEnd] === str2[prefixEnd]) {
+    prefixEnd++;
+  }
+
+  // 查找共同后缀
+  let suffixStart1 = str1.length;
+  let suffixStart2 = str2.length;
+
+  while (suffixStart1 > prefixEnd && suffixStart2 > prefixEnd &&
+         str1[suffixStart1 - 1] === str2[suffixStart2 - 1]) {
+    suffixStart1--;
+    suffixStart2--;
+  }
+
+  return {
+    prefix: str1.substring(0, prefixEnd),
+    suffix: str1.substring(suffixStart1),
+    leftMiddle: str1.substring(prefixEnd, suffixStart1),
+    rightMiddle: str2.substring(prefixEnd, suffixStart2)
+  };
+}
+
 // 检查是否应该进行字符级别的差异比较 - 优化版本，更保守的策略
 function shouldUseCharLevelDiff(leftText: string, rightText: string, wordDiffs: DiffResult): boolean {
-  // 如果文本很短且只有少量单词，可以考虑字符级比较
+  // 文本太长直接跳过字符级比较
+  if (leftText.length + rightText.length > 200) {
+    return false;
+  }
+
   const leftWords = leftText.trim().split(/\s+/);
   const rightWords = rightText.trim().split(/\s+/);
 
@@ -106,15 +292,14 @@ function shouldUseCharLevelDiff(leftText: string, rightText: string, wordDiffs: 
     const leftWord = leftWords[0];
     const rightWord = rightWords[0];
 
-    // 只有当单词长度适中且相似度很高时才使用字符级比较
     if (leftWord.length <= 50 && rightWord.length <= 50) {
       const similarity = calculateSimilarity(leftWord, rightWord);
-      return similarity > 0.7; // 提高阈值，只有非常相似的单词才用字符级比较
+      return similarity > 0.7;
     }
   }
 
   // 对于多个单词的情况，更加保守
-  if (leftWords.length <= 3 && rightWords.length <= 3 && leftText.length + rightText.length <= 100) {
+  if (leftWords.length <= 3 && rightWords.length <= 3) {
     // 检查是否有高度相似的相邻removed/added对
     for (let i = 0; i < wordDiffs.length - 1; i++) {
       const current = wordDiffs[i];
@@ -122,7 +307,6 @@ function shouldUseCharLevelDiff(leftText: string, rightText: string, wordDiffs: 
 
       if (current.removed && next.added) {
         const similarity = calculateSimilarity(current.value.trim(), next.value.trim());
-        // 只有相似度很高的情况才使用字符级比较
         if (similarity > 0.8) {
           return true;
         }
@@ -130,43 +314,46 @@ function shouldUseCharLevelDiff(leftText: string, rightText: string, wordDiffs: 
     }
   }
 
-  // 默认使用词汇级比较
   return false;
 }
 
-// 使用异步方式计算差异，优先使用Web Worker
+// 使用异步方式计算差异，优先使用Web Worker，支持分块处理
 async function computeDiffAsync(leftText: string, rightText: string, type: 'words' | 'chars'): Promise<DiffResult> {
   // Early return for identical texts
   if (leftText === rightText) {
     return leftText ? [{ value: leftText }] : [];
   }
 
-  // 如果文本过长，直接使用同步计算避免Worker超时
   const totalLength = leftText.length + rightText.length;
-  if (totalLength > 20000) { // Reduced threshold for better responsiveness
-    console.warn(`Text too long (${totalLength} chars), using sync diff for ${type}`);
+
+  // 对于超长文本使用分块处理
+  if (totalLength > 50000) { // 提高阈值，使用分块处理
+    console.warn(`Text very long (${totalLength} chars), using chunked diff for ${type}`);
+    return computeChunkedDiff(leftText, rightText, type);
+  }
+
+  // 中等长度文本直接同步处理
+  if (totalLength > 20000) {
+    console.warn(`Text long (${totalLength} chars), using sync diff for ${type}`);
     return cachedDiff(leftText, rightText, type === 'words' ? diffWords : diffChars);
   }
 
   try {
-    // 使用Worker管理器进行异步计算，添加更短的超时时间
     const task = type === 'words' ? 'diffWords' : 'diffChars';
     const result = await Promise.race([
       processDiffWithWorker<DiffResult>(task, leftText, rightText, undefined, type),
-      // 添加额外的超时保护
       new Promise<never>((_, reject) => {
-        setTimeout(() => reject(new Error(`${type} diff timeout`)), 8000); // Reduced to 8 seconds
+        setTimeout(() => reject(new Error(`${type} diff timeout`)), 6000); // 减少超时时间
       })
     ]);
     return result;
   } catch (e) {
-    // 如果Worker不可用或计算失败，回退到同步计算
     console.warn(`Worker diff failed for ${type}, falling back to sync mode:`, e instanceof Error ? e.message : 'Unknown error');
     return cachedDiff(leftText, rightText, type === 'words' ? diffWords : diffChars);
   }
 }
 
-// Function to apply diffs to modified lines - 优化为优先词汇级别
+// 批处理优化的applyWordDiffs函数
 export async function applyWordDiffs(leftLines: DiffResultWithLineNumbers[], rightLines: DiffResultWithLineNumbers[]): Promise<void> {
   // Identify corresponding modified line pairs
   const modifiedPairs: [number, number][] = [];
@@ -185,8 +372,6 @@ export async function applyWordDiffs(leftLines: DiffResultWithLineNumbers[], rig
       continue;
     }
 
-    // Look for pairs of lines that should be compared for word diffs
-    // This includes both explicit 'modified' lines and removed/added pairs
     if ((leftLines[leftIdx].removed && rightLines[rightIdx].added) ||
         (leftLines[leftIdx].modified && rightLines[rightIdx].modified)) {
       modifiedPairs.push([leftIdx, rightIdx]);
@@ -196,62 +381,72 @@ export async function applyWordDiffs(leftLines: DiffResultWithLineNumbers[], rig
     rightIdx++;
   }
 
-  // 处理每一对需要计算差异的行 - 优先词汇级别
-  const processPromises = modifiedPairs.map(async ([leftIndex, rightIndex]) => {
-    try {
-      const leftLine = leftLines[leftIndex];
-      const rightLine = rightLines[rightIndex];
+  // 批处理：将大量diff任务分批执行
+  const BATCH_SIZE = 10; // 每批处理10行
+  const batches: Array<[number, number][]> = [];
 
-      const leftText = leftLine.value;
-      const rightText = rightLine.value;
+  for (let i = 0; i < modifiedPairs.length; i += BATCH_SIZE) {
+    batches.push(modifiedPairs.slice(i, i + BATCH_SIZE));
+  }
 
-      // 初始化 inlineChanges 数组
-      leftLine.inlineChanges = [];
-      rightLine.inlineChanges = [];
-
-      // 优先进行词汇级别的比较
-      let wordDiffs: DiffResult;
+  // 逐批处理，避免创建过多并发Promise
+  for (const batch of batches) {
+    const batchPromises = batch.map(async ([leftIndex, rightIndex]) => {
       try {
-        wordDiffs = await computeDiffAsync(leftText, rightText, 'words');
-      } catch (e) {
-        console.error('Async word diff failed, falling back to sync:', e instanceof Error ? e.message : 'Unknown error');
-        wordDiffs = cachedDiff(leftText, rightText, diffWords);
+        const leftLine = leftLines[leftIndex];
+        const rightLine = rightLines[rightIndex];
+
+        const leftText = leftLine.value;
+        const rightText = rightLine.value;
+
+        // 早期退出：如果行内容相同
+        if (leftText === rightText) {
+          leftLine.inlineChanges = [{ value: leftText, removed: false, added: false }];
+          rightLine.inlineChanges = [{ value: rightText, removed: false, added: false }];
+          return;
+        }
+
+        // 初始化 inlineChanges 数组
+        leftLine.inlineChanges = [];
+        rightLine.inlineChanges = [];
+
+        // 优先进行词汇级别的比较
+        let wordDiffs: DiffResult;
+        try {
+          wordDiffs = await computeDiffAsync(leftText, rightText, 'words');
+        } catch (e) {
+          console.error('Async word diff failed, falling back to sync:', e instanceof Error ? e.message : 'Unknown error');
+          wordDiffs = cachedDiff(leftText, rightText, diffWords);
+        }
+
+        // 检查是否需要进行字符级别的精细处理
+        const needsCharDiff = shouldUseCharLevelDiff(leftText, rightText, wordDiffs);
+
+        let finalDiffs = wordDiffs;
+
+        // 只有在确实需要时才进行字符级比较
+        if (needsCharDiff) {
+          finalDiffs = await processCharLevelForSimilarWords(wordDiffs, leftText, rightText);
+        }
+
+        // 构建 inlineChanges
+        await buildInlineChanges(leftLine, rightLine, finalDiffs);
+
+      } catch (error) {
+        console.error(`Failed to process diff for line pair ${leftIndex}:${rightIndex}:`, error instanceof Error ? error.message : 'Unknown error');
+
+        // 确保至少有基本的inlineChanges
+        if (!leftLines[leftIndex].inlineChanges) {
+          leftLines[leftIndex].inlineChanges = [{ value: leftLines[leftIndex].value, removed: false, added: false }];
+        }
+        if (!rightLines[rightIndex].inlineChanges) {
+          rightLines[rightIndex].inlineChanges = [{ value: rightLines[rightIndex].value, removed: false, added: false }];
+        }
       }
+    });
 
-      // 检查是否需要进行字符级别的精细处理
-      const needsCharDiff = shouldUseCharLevelDiff(leftText, rightText, wordDiffs);
-
-      let finalDiffs = wordDiffs;
-
-      // 只有在确实需要时才进行字符级比较，并且只对特定的词汇对进行
-      if (needsCharDiff) {
-        finalDiffs = await processCharLevelForSimilarWords(wordDiffs, leftText, rightText);
-      }
-
-      // 构建 inlineChanges，确保以词汇为主要边界
-      await buildInlineChanges(leftLine, rightLine, finalDiffs);
-
-    } catch (error) {
-      // 如果单个行的处理失败，记录错误但不影响其他行
-      console.error(`Failed to process diff for line pair ${leftIndex}:${rightIndex}:`, error instanceof Error ? error.message : 'Unknown error');
-
-      // 确保至少有基本的inlineChanges，使用词汇级别的fallback
-      if (!leftLines[leftIndex].inlineChanges) {
-        leftLines[leftIndex].inlineChanges = [{ value: leftLines[leftIndex].value, removed: false, added: false }];
-      }
-      if (!rightLines[rightIndex].inlineChanges) {
-        rightLines[rightIndex].inlineChanges = [{ value: rightLines[rightIndex].value, removed: false, added: false }];
-      }
-    }
-  });
-
-  // 等待所有行的处理完成，使用Promise.allSettled防止单个失败影响整体
-  const results = await Promise.allSettled(processPromises);
-
-  // 检查是否有失败的Promise，记录但不抛出错误
-  const failedCount = results.filter(result => result.status === 'rejected').length;
-  if (failedCount > 0) {
-    console.warn(`${failedCount} out of ${results.length} line diff operations failed, but continuing with available results`);
+    // 等待当前批次完成再处理下一批
+    await Promise.allSettled(batchPromises);
   }
 }
 
