@@ -11,8 +11,8 @@ function analyticsInjectionPlugin(mode: string): Plugin {
   return {
     name: 'analytics-injection',
     transformIndexHtml: {
-      enforce: 'pre',
-      transform(html) {
+      order: 'pre',
+      handler(html) {
         const analyticsUrl = process.env.ANALYTICS_URL;
         if (analyticsUrl && mode !== 'development') {
           return {
