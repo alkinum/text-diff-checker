@@ -7,6 +7,7 @@ import { computeLineDiff, detectLanguage, type FormattedDiff } from "@/utils/dif
 import DualCodeView from "@/components/DualCodeView";
 import FormatSelector from "@/components/FormatSelector";
 import LineNumberedTextarea from "@/components/LineNumberedTextarea";
+import Footer from "@/components/Footer";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 const DiffViewer: React.FC = () => {
@@ -210,9 +211,7 @@ const DiffViewer: React.FC = () => {
           </div>
         </div>
       </div>
-      <div className="mt-12 pb-4 text-center">
-        <p className="text-xs text-muted-foreground/15 select-none">Made by Alkinum</p>
-      </div>
+      <Footer />
     </div>
   );
 };
