@@ -16,7 +16,7 @@ A modern, browser-based text difference checking tool that processes everything 
 
 ### Online Version
 
-Visit [https://text-diff-checker.example.com](https://text-diff-checker.example.com) to use the tool immediately without installation.
+Visit [https://diff.pwp.sh](https://diff.pwp.sh) to use the tool immediately without installation.
 
 ### Run Locally
 
@@ -24,7 +24,7 @@ If you prefer to run the application on your local machine:
 
 ```sh
 # Clone this repository
-git clone https://github.com/yourusername/text-diff-checker.git
+git clone https://github.com/alkinum/text-diff-checker.git
 
 # Navigate to the project directory
 cd text-diff-checker

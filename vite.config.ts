@@ -62,6 +62,7 @@ export default defineConfig(({ mode }) => ({
         },
       },
     },
+    copyPublicDir: true,
   },
   experimental: {
     renderBuiltUrl(filename) {
