@@ -17,7 +17,6 @@ import { register } from "./utils/serviceWorker";
 
 const queryClient = new QueryClient();
 
-// 错误边界组件
 const ErrorBoundary = ({ children }: { children: React.ReactNode }) => {
   const [hasError, setHasError] = useState(false);
   const isOnline = useOnlineStatus();
@@ -67,7 +66,7 @@ const App = () => {
     // Service Worker callbacks with toast notifications
     const handleServiceWorkerUpdate = (registration: ServiceWorkerRegistration) => {
       console.log('Service Worker: Update available, showing notification');
-      
+
       toast({
         title: "New Version Available! 🚀",
         description: "A new version of the app is ready. Reload to get the latest features and improvements.",
@@ -86,38 +85,10 @@ const App = () => {
       });
     };
 
-    const handleServiceWorkerReady = () => {
-      console.log('Service Worker: Ready, showing cached notification');
-      
-      toast({
-        title: "App Ready for Offline Use! 💾",
-        description: "The app has been cached and will work offline.",
-        duration: 4000,
-      });
-    };
-
-    // Listen for service worker messages
-    const handleServiceWorkerMessage = (event: MessageEvent) => {
-      if (event.data && event.data.type === 'SW_READY') {
-        handleServiceWorkerReady();
-      }
-    };
-
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.addEventListener('message', handleServiceWorkerMessage);
-    }
-
     // Register Service Worker with toast notifications
     register({
-      onSuccess: handleServiceWorkerReady,
       onUpdate: handleServiceWorkerUpdate
     });
-
-    return () => {
-      if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.removeEventListener('message', handleServiceWorkerMessage);
-      }
-    };
   }, [toast]);
 
   return (
