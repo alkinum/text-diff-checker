@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -63,32 +62,36 @@ const App = () => {
   const { toast } = useToast();
 
   useEffect(() => {
-    // Service Worker callbacks with toast notifications
-    const handleServiceWorkerUpdate = (registration: ServiceWorkerRegistration) => {
-      console.log('Service Worker: Update available, showing notification');
+    if (import.meta.env.PROD) {
+      // Service Worker callbacks with toast notifications
+      const handleServiceWorkerUpdate = (registration: ServiceWorkerRegistration) => {
+        console.log('Service Worker: Update available, showing notification');
 
-      toast({
-        title: "New Version Available! 🚀",
-        description: "A new version of the app is ready. Reload to get the latest features and improvements.",
-        duration: Infinity, // Keep it open until user takes action
-        action: (
-          <ToastAction 
-            altText="Reload now"
-            onClick={() => {
-              console.log('Service Worker: User chose to reload for update');
-              window.location.reload();
-            }}
-          >
-            Reload Now
-          </ToastAction>
-        ),
+        toast({
+          title: "New Version Available! 🚀",
+          description: "A new version of the app is ready. Reload to get the latest features and improvements.",
+          duration: Infinity, // Keep it open until user takes action
+          action: (
+            <ToastAction
+              altText="Reload now"
+              onClick={() => {
+                console.log('Service Worker: User chose to reload for update');
+                window.location.reload();
+              }}
+            >
+              Reload Now
+            </ToastAction>
+          ),
+        });
+      };
+
+      // Register Service Worker with toast notifications
+      register({
+        onUpdate: handleServiceWorkerUpdate
       });
-    };
-
-    // Register Service Worker with toast notifications
-    register({
-      onUpdate: handleServiceWorkerUpdate
-    });
+    } else {
+      console.log('Development mode: Service Worker registration skipped');
+    }
   }, [toast]);
 
   return (

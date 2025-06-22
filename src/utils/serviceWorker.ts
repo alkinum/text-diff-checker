@@ -47,32 +47,32 @@ function registerValidSW(swUrl: string, config?: Config) {
     .register(swUrl)
     .then((registration) => {
       console.log('Service Worker: Registration successful');
-      
+
       // Listen for messages from the service worker
       navigator.serviceWorker.addEventListener('message', (event) => {
         if (event.data && event.data.type === 'SW_READY') {
           console.log('Service Worker: Ready and controlling clients', event.data);
         }
       });
-      
+
       registration.onupdatefound = () => {
         const installingWorker = registration.installing;
         if (installingWorker == null) {
           return;
         }
-        
+
         console.log('Service Worker: New version installing...');
-        
+
         installingWorker.onstatechange = () => {
           console.log('Service Worker: State changed to', installingWorker.state);
-          
+
           if (installingWorker.state === 'installed') {
             if (navigator.serviceWorker.controller) {
               console.log('Service Worker: New content available, activating immediately');
-              
+
               // Force the new service worker to take control
               installingWorker.postMessage({ type: 'SKIP_WAITING' });
-              
+
               if (config && config.onUpdate) {
                 config.onUpdate(registration);
               }
@@ -83,7 +83,7 @@ function registerValidSW(swUrl: string, config?: Config) {
               }
             }
           }
-          
+
           if (installingWorker.state === 'activated') {
             console.log('Service Worker: New version activated');
             // Optionally reload the page to use new version immediately
@@ -91,13 +91,13 @@ function registerValidSW(swUrl: string, config?: Config) {
           }
         };
       };
-      
+
       // Check if there's an update waiting
       if (registration.waiting) {
         console.log('Service Worker: Update waiting, activating...');
         registration.waiting.postMessage({ type: 'SKIP_WAITING' });
       }
-      
+
     })
     .catch((error) => {
       console.error('Error during service worker registration:', error);
@@ -138,4 +138,4 @@ export function unregister() {
         console.error(error.message);
       });
   }
-} 
+}

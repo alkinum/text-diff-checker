@@ -1,4 +1,3 @@
-
 // Type definitions for diff functionality
 export interface DiffResult {
   value: string;
@@ -22,4 +21,5 @@ export interface DiffResultWithLineNumbers extends DiffResult {
   }[];
   spacer?: boolean; // To indicate this is a placeholder for spacing
   extraLine?: boolean; // To indicate this line exists in original but not in modified
+  indentOnly?: boolean; // To indicate this line has only indentation changes
 }

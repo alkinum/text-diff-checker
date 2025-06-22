@@ -354,7 +354,10 @@ async function computeDiffAsync(leftText: string, rightText: string, type: 'word
 }
 
 // 批处理优化的applyWordDiffs函数
-export async function applyWordDiffs(leftLines: DiffResultWithLineNumbers[], rightLines: DiffResultWithLineNumbers[]): Promise<void> {
+export async function applyWordDiffs(
+  leftLines: DiffResultWithLineNumbers[],
+  rightLines: DiffResultWithLineNumbers[]
+): Promise<void> {
   // Identify corresponding modified line pairs
   const modifiedPairs: [number, number][] = [];
 
@@ -396,13 +399,20 @@ export async function applyWordDiffs(leftLines: DiffResultWithLineNumbers[], rig
         const leftLine = leftLines[leftIndex];
         const rightLine = rightLines[rightIndex];
 
+        // 如果行已经有 inlineChanges，说明已经被处理过（如仅缩进差异），跳过
+        if ((leftLine.inlineChanges && leftLine.inlineChanges.length > 0 && 
+             rightLine.inlineChanges && rightLine.inlineChanges.length > 0) ||
+            (leftLine.indentOnly && rightLine.indentOnly)) {
+          return;
+        }
+
         const leftText = leftLine.value;
         const rightText = rightLine.value;
 
         // 早期退出：如果行内容相同
         if (leftText === rightText) {
-          leftLine.inlineChanges = [{ value: leftText, removed: false, added: false }];
-          rightLine.inlineChanges = [{ value: rightText, removed: false, added: false }];
+          leftLine.inlineChanges = [{ value: leftLine.value, removed: false, added: false }];
+          rightLine.inlineChanges = [{ value: rightLine.value, removed: false, added: false }];
           return;
         }
 
@@ -487,7 +497,7 @@ async function processCharLevelForSimilarWords(wordDiffs: DiffResult, leftText: 
 async function buildInlineChanges(
   leftLine: DiffResultWithLineNumbers,
   rightLine: DiffResultWithLineNumbers,
-  diffs: DiffResult
+  diffs: DiffPart[]
 ): Promise<void> {
   // 处理差异并构建 inlineChanges，保持词汇边界
   for (const part of diffs) {

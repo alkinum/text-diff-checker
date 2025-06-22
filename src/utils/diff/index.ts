@@ -56,8 +56,8 @@ function calculateDiffTimeout(textLength: number): number {
 }
 
 // 文本预处理：移除不必要的空白和标准化换行符
-function preprocessText(text: string): string {
-  if (!text) return text;
+function preprocessText(text: string): { processedText: string, originalLines: string[] } {
+  if (!text) return { processedText: text, originalLines: [] };
 
   // 标准化换行符
   let processed = text.replace(/\r\n|\r/g, '\n');
@@ -69,7 +69,9 @@ function preprocessText(text: string): string {
     processed += '\n';
   }
 
-  return processed;
+  const originalLines = processed.split('\n');
+
+  return { processedText: processed, originalLines };
 }
 
 // Process line diff calculation in Web Worker with optimized pooling
@@ -188,18 +190,24 @@ function processLinesInBatches<T>(
 }
 
 // Main function to compute line-by-line differences with proper alignment
-export async function computeLineDiff(oldText: string, newText: string): Promise<FormattedDiff> {
-  // 预处理文本
+export async function computeLineDiff(
+  oldText: string,
+  newText: string,
+): Promise<FormattedDiff> {
+  // 预处理文本（不忽略空白）
   const processedOldText = preprocessText(oldText);
   const processedNewText = preprocessText(newText);
 
   // Early return for identical texts
-  if (processedOldText === processedNewText) {
-    const lines = processedOldText.split('\n');
+  if (processedOldText.processedText === processedNewText.processedText) {
+    const lines = processedOldText.originalLines;
     const leftLines: DiffResultWithLineNumbers[] = [];
     const rightLines: DiffResultWithLineNumbers[] = [];
 
     lines.forEach((line, index) => {
+      // 检查并移除最后一个空行
+      if (index === lines.length - 1 && line === '') return;
+      
       leftLines.push({
         value: line,
         lineNumber: index + 1
@@ -213,9 +221,14 @@ export async function computeLineDiff(oldText: string, newText: string): Promise
     return { left: leftLines, right: rightLines };
   }
 
-  // Split both texts into lines
-  const oldLines = processedOldText.split('\n');
-  const newLines = processedNewText.split('\n');
+  // Split both texts into lines for diffing
+  const oldDiffLines = processedOldText.processedText.split('\n');
+  const newDiffLines = processedNewText.processedText.split('\n');
+  
+  // Keep original lines for display
+  const oldOriginalLines = processedOldText.originalLines;
+  const newOriginalLines = processedNewText.originalLines;
+
 
   // Create arrays to store the aligned line-by-line diff result
   const leftLines: DiffResultWithLineNumbers[] = [];
@@ -227,16 +240,16 @@ export async function computeLineDiff(oldText: string, newText: string): Promise
   // Get the diff results - use Worker async calculation if available
   let changes: LineDiffResult[];
   try {
-    changes = await processLineDiffInWorker(processedOldText, processedNewText);
+    changes = await processLineDiffInWorker(processedOldText.processedText, processedNewText.processedText);
   } catch (e) {
     console.error('Line diff calculation failed, falling back to simple strategy:', e);
     // 极端情况下的简单fallback
-    return generateSimpleDiff(processedOldText, processedNewText);
+    return generateSimpleDiff(processedOldText.processedText, processedNewText.processedText);
   }
 
   // Validate changes result
   if (!changes || changes.length === 0) {
-    return generateSimpleDiff(processedOldText, processedNewText);
+    return generateSimpleDiff(processedOldText.processedText, processedNewText.processedText);
   }
 
   // Process changes in batches for memory efficiency
@@ -298,6 +311,39 @@ export async function computeLineDiff(oldText: string, newText: string): Promise
             lineNumber: rightLineNumber++,
             modified: true
           });
+
+          // --- 新增：检查是否仅缩进不同，若是则直接构建行内空格 diff ---
+          const leftObj = leftLines[leftLines.length - 1];
+          const rightObj = rightLines[rightLines.length - 1];
+
+          const oldTrimmed = oldPartLines[i].trimStart();
+          const newTrimmed = newPartLines[i].trimStart();
+
+          if (oldTrimmed === newTrimmed) {
+            // 仅缩进差异
+            const oldSpaces = oldPartLines[i].substring(0, oldPartLines[i].length - oldTrimmed.length);
+            const newSpaces = newPartLines[i].substring(0, newPartLines[i].length - newTrimmed.length);
+
+            leftObj.inlineChanges = [];
+            rightObj.inlineChanges = [];
+
+            if (oldSpaces) {
+              leftObj.inlineChanges.push({ value: oldSpaces, removed: true, added: false });
+            }
+            if (newSpaces) {
+              rightObj.inlineChanges.push({ value: newSpaces, removed: false, added: true });
+            }
+
+            // 共有文本片段
+            if (oldTrimmed) {
+              leftObj.inlineChanges.push({ value: oldTrimmed, removed: false, added: false });
+              rightObj.inlineChanges.push({ value: newTrimmed, removed: false, added: false });
+            }
+
+            // 标记为已处理，避免后续 applyWordDiffs 重新处理
+            leftObj.indentOnly = true;
+            rightObj.indentOnly = true;
+          }
         }
 
         // Handle remaining lines in the old text
@@ -394,9 +440,9 @@ export async function computeLineDiff(oldText: string, newText: string): Promise
 
   // Safety check
   const leftRemoved = leftLines.filter(line => line.removed).length;
-  if (leftRemoved > oldLines.length * 1.5) { // Allow some tolerance
+  if (leftRemoved > oldDiffLines.length * 1.5) { // Allow some tolerance
     console.warn("Diff calculation error: Excessive removed lines detected, using simple diff");
-    return generateSimpleDiff(processedOldText, processedNewText);
+    return generateSimpleDiff(processedOldText.processedText, processedNewText.processedText);
   }
 
   // Apply character-level diffs for modified lines

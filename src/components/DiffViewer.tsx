@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef, useLayoutEffect } from "react";
+import React, { useEffect, useState, useRef, useLayoutEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { FileDiff, Sparkle, Loader2 } from "lucide-react";
@@ -61,7 +61,7 @@ const DiffViewer: React.FC = () => {
   }, [leftText, rightText]);
 
   // Function to compute differences
-  const handleCompare = async () => {
+  const handleCompare = useCallback(async () => {
     if (!leftText && !rightText) {
       toast({
         title: "Empty comparison",
@@ -86,7 +86,7 @@ const DiffViewer: React.FC = () => {
     } finally {
       setIsComparing(false);
     }
-  };
+  }, [leftText, rightText, toast]);
 
   // Function to clear inputs
   const handleClear = () => {
