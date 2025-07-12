@@ -8,7 +8,7 @@ export function prepareLineDiff(oldText: string, newText: string): {
   leftLines: DiffResultWithLineNumbers[];
   rightLines: DiffResultWithLineNumbers[];
 } {
-  // This is now a noop function as alignment is handled in computeLineDiff
+  // This is now a no-op function as alignment is handled in computeLineDiff
   return { leftLines: [], rightLines: [] };
 }
 
@@ -16,6 +16,6 @@ export function alignLines(leftLines: DiffResultWithLineNumbers[], rightLines: D
   alignedLeft: DiffResultWithLineNumbers[];
   alignedRight: DiffResultWithLineNumbers[];
 } {
-  // This is now a noop function as alignment is handled in computeLineDiff
+  // This is now a no-op function as alignment is handled in computeLineDiff
   return { alignedLeft: leftLines, alignedRight: rightLines };
 }

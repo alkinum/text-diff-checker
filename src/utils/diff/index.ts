@@ -2,31 +2,6 @@ import { diffLines } from 'diff';
 import { applyWordDiffs } from './wordDiffer';
 import { detectLanguage } from './languageDetector';
 import { FormattedDiff, DiffResultWithLineNumbers } from './types';
-import { processDiffWithWorker, getAvailableWorker } from './workerManager';
-
-// Check if Web Worker is supported
-const supportsWorker = typeof Worker !== 'undefined';
-
-// Preload workers for better performance
-let workersPreloaded = false;
-export async function preloadDiffWorkers(): Promise<void> {
-  if (!workersPreloaded && supportsWorker) {
-    try {
-      console.log('Preloading diff workers...');
-      await getAvailableWorker();
-      workersPreloaded = true;
-      console.log('Diff workers preloaded successfully');
-    } catch (e) {
-      console.warn('Failed to preload workers, will use sync mode:', e);
-    }
-  }
-}
-
-// Auto-preload workers when module is imported
-if (typeof window !== 'undefined') {
-  // Small delay to not block initial page load
-  setTimeout(() => preloadDiffWorkers(), 100);
-}
 
 // Define line comparison result type
 interface LineDiffResult {
@@ -36,33 +11,14 @@ interface LineDiffResult {
   count?: number;
 }
 
-// 智能选择diff策略，根据文本大小和类型
-function shouldUseWorkerForDiff(textLength: number): boolean {
-  // 小文本直接同步处理
-  if (textLength < 5000) return false;
-
-  // 中等文本使用worker
-  if (textLength < 200000) return supportsWorker;
-
-  // 超大文本需要特殊处理
-  return false;
-}
-
-// 计算动态超时时间
-function calculateDiffTimeout(textLength: number): number {
-  const baseTimeout = 5000; // 基础5秒
-  const lengthFactor = Math.min(textLength / 20000, 10); // 每20K增加时间，最多10倍
-  return baseTimeout + (lengthFactor * 3000); // 最多35秒
-}
-
-// 文本预处理：移除不必要的空白和标准化换行符
+// Text preprocessing: remove unnecessary whitespace and normalize line breaks
 function preprocessText(text: string): { processedText: string, originalLines: string[] } {
   if (!text) return { processedText: text, originalLines: [] };
 
-  // 标准化换行符
+  // Normalize line breaks
   let processed = text.replace(/\r\n|\r/g, '\n');
 
-  // 移除文件末尾多余的空行（但保留一个空行如果原本就有）
+  // Remove excess empty lines at end of file (but keep one if originally present)
   const hasTrailingNewline = processed.endsWith('\n');
   processed = processed.replace(/\n+$/, '');
   if (hasTrailingNewline) {
@@ -74,8 +30,8 @@ function preprocessText(text: string): { processedText: string, originalLines: s
   return { processedText: processed, originalLines };
 }
 
-// Process line diff calculation in Web Worker with optimized pooling
-async function processLineDiffInWorker(oldText: string, newText: string): Promise<LineDiffResult[]> {
+// Process line diff calculation synchronously
+function processLineDiff(oldText: string, newText: string): LineDiffResult[] {
   // Quick optimization: if texts are identical, return early
   if (oldText === newText) {
     return oldText ? [{ value: oldText }] : [];
@@ -83,57 +39,37 @@ async function processLineDiffInWorker(oldText: string, newText: string): Promis
 
   const totalLength = oldText.length + newText.length;
 
-  // 智能决策是否使用worker
-  if (!shouldUseWorkerForDiff(totalLength)) {
-    return diffLines(oldText, newText);
-  }
-
-  // 对于超大文本，使用分块策略
-  if (totalLength > 500000) { // 500KB阈值
+  // For extremely large text, use chunked strategy
+  if (totalLength > 500000) { // 500KB threshold
     console.warn(`Text extremely large (${totalLength} chars), using chunked line diff`);
     return processChunkedLineDiff(oldText, newText);
   }
 
-  try {
-    const timeout = calculateDiffTimeout(totalLength);
-    const result = await Promise.race([
-      processDiffWithWorker<LineDiffResult[]>('diffLines', oldText, newText),
-      new Promise<never>((_, reject) => {
-        setTimeout(() => reject(new Error('Line diff timeout')), timeout);
-      })
-    ]);
-    return result;
-  } catch (e) {
-    console.warn('Worker line diff failed, falling back to sync mode:', e instanceof Error ? e.message : 'Unknown error');
-    // 对于失败的大文本，尝试分块处理
-    if (totalLength > 100000) {
-      return processChunkedLineDiff(oldText, newText);
-    }
-    return diffLines(oldText, newText);
-  }
+  // Use standard diff for all other cases
+  return diffLines(oldText, newText);
 }
 
-// 分块行级diff处理
-async function processChunkedLineDiff(oldText: string, newText: string): Promise<LineDiffResult[]> {
+// Chunked line diff processing
+function processChunkedLineDiff(oldText: string, newText: string): LineDiffResult[] {
   const oldLines = oldText.split('\n');
   const newLines = newText.split('\n');
 
-  // 如果行数不是很多，直接处理
+  // If number of lines is not too many, process directly
   if (oldLines.length + newLines.length < 10000) {
     return diffLines(oldText, newText);
   }
 
-  // 寻找共同的开头和结尾行
+  // Find common beginning and ending lines
   let commonStart = 0;
   let commonEnd = 0;
   const minLines = Math.min(oldLines.length, newLines.length);
 
-  // 找共同开头行
+  // Find common beginning lines
   while (commonStart < minLines && oldLines[commonStart] === newLines[commonStart]) {
     commonStart++;
   }
 
-  // 找共同结尾行
+  // Find common ending lines
   while (commonEnd < minLines - commonStart &&
          oldLines[oldLines.length - 1 - commonEnd] === newLines[newLines.length - 1 - commonEnd]) {
     commonEnd++;
@@ -141,12 +77,12 @@ async function processChunkedLineDiff(oldText: string, newText: string): Promise
 
   const result: LineDiffResult[] = [];
 
-  // 添加共同开头
+  // Add common beginning
   for (let i = 0; i < commonStart; i++) {
     result.push({ value: oldLines[i] + '\n' });
   }
 
-  // 处理中间差异部分
+  // Process middle difference part
   const oldMiddleLines = oldLines.slice(commonStart, oldLines.length - commonEnd);
   const newMiddleLines = newLines.slice(commonStart, newLines.length - commonEnd);
 
@@ -154,12 +90,12 @@ async function processChunkedLineDiff(oldText: string, newText: string): Promise
     const oldMiddleText = oldMiddleLines.join('\n') + (oldMiddleLines.length > 0 ? '\n' : '');
     const newMiddleText = newMiddleLines.join('\n') + (newMiddleLines.length > 0 ? '\n' : '');
 
-    // 对中间部分进行diff
+    // Diff the middle part
     try {
-      const middleDiff = await processDiffWithWorker<LineDiffResult[]>('diffLines', oldMiddleText, newMiddleText);
+      const middleDiff = diffLines(oldMiddleText, newMiddleText);
       result.push(...middleDiff);
     } catch (e) {
-      // 如果worker失败，使用简单的删除/添加策略
+      // If worker fails, use simple delete/add strategy
       if (oldMiddleText) {
         result.push({ value: oldMiddleText, removed: true });
       }
@@ -169,7 +105,7 @@ async function processChunkedLineDiff(oldText: string, newText: string): Promise
     }
   }
 
-  // 添加共同结尾
+  // Add common ending
   for (let i = oldLines.length - commonEnd; i < oldLines.length; i++) {
     result.push({ value: oldLines[i] + '\n' });
   }
@@ -177,7 +113,7 @@ async function processChunkedLineDiff(oldText: string, newText: string): Promise
   return result;
 }
 
-// 内存优化的行处理函数
+// Memory-optimized line processing function
 function processLinesInBatches<T>(
   lines: T[],
   batchSize: number,
@@ -190,11 +126,11 @@ function processLinesInBatches<T>(
 }
 
 // Main function to compute line-by-line differences with proper alignment
-export async function computeLineDiff(
+export function computeLineDiff(
   oldText: string,
   newText: string,
-): Promise<FormattedDiff> {
-  // 预处理文本（不忽略空白）
+): FormattedDiff {
+  // Preprocess text (don't ignore whitespace)
   const processedOldText = preprocessText(oldText);
   const processedNewText = preprocessText(newText);
 
@@ -205,7 +141,7 @@ export async function computeLineDiff(
     const rightLines: DiffResultWithLineNumbers[] = [];
 
     lines.forEach((line, index) => {
-      // 检查并移除最后一个空行
+      // Check and remove last empty line
       if (index === lines.length - 1 && line === '') return;
       
       leftLines.push({
@@ -240,10 +176,10 @@ export async function computeLineDiff(
   // Get the diff results - use Worker async calculation if available
   let changes: LineDiffResult[];
   try {
-    changes = await processLineDiffInWorker(processedOldText.processedText, processedNewText.processedText);
+    changes = processLineDiff(processedOldText.processedText, processedNewText.processedText);
   } catch (e) {
     console.error('Line diff calculation failed, falling back to simple strategy:', e);
-    // 极端情况下的简单fallback
+    // Simple fallback for extreme cases
     return generateSimpleDiff(processedOldText.processedText, processedNewText.processedText);
   }
 
@@ -253,7 +189,7 @@ export async function computeLineDiff(
   }
 
   // Process changes in batches for memory efficiency
-  const BATCH_SIZE = 1000; // 每批处理1000个change
+  const BATCH_SIZE = 1000; // Process 1000 changes per batch
   const processedChanges = [];
   let i = 0;
 
@@ -312,7 +248,7 @@ export async function computeLineDiff(
             modified: true
           });
 
-          // --- 新增：检查是否仅缩进不同，若是则直接构建行内空格 diff ---
+          // --- New: Check if only indentation is different, if so build inline space diff directly ---
           const leftObj = leftLines[leftLines.length - 1];
           const rightObj = rightLines[rightLines.length - 1];
 
@@ -320,7 +256,7 @@ export async function computeLineDiff(
           const newTrimmed = newPartLines[i].trimStart();
 
           if (oldTrimmed === newTrimmed) {
-            // 仅缩进差异
+            // Only indentation difference
             const oldSpaces = oldPartLines[i].substring(0, oldPartLines[i].length - oldTrimmed.length);
             const newSpaces = newPartLines[i].substring(0, newPartLines[i].length - newTrimmed.length);
 
@@ -334,13 +270,13 @@ export async function computeLineDiff(
               rightObj.inlineChanges.push({ value: newSpaces, removed: false, added: true });
             }
 
-            // 共有文本片段
+            // Common text fragment
             if (oldTrimmed) {
               leftObj.inlineChanges.push({ value: oldTrimmed, removed: false, added: false });
               rightObj.inlineChanges.push({ value: newTrimmed, removed: false, added: false });
             }
 
-            // 标记为已处理，避免后续 applyWordDiffs 重新处理
+            // Mark as processed to avoid subsequent applyWordDiffs reprocessing
             leftObj.indentOnly = true;
             rightObj.indentOnly = true;
           }
@@ -447,7 +383,7 @@ export async function computeLineDiff(
 
   // Apply character-level diffs for modified lines
   try {
-    await applyWordDiffs(leftLines, rightLines);
+    applyWordDiffs(leftLines, rightLines);
   } catch (e) {
     console.warn('Word diff application failed, continuing with line-level diff only:', e);
   }

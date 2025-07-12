@@ -1,0 +1,5 @@
+We're developing a high-performance text comparison tool using React and TypeScript, with all diff computations (block-level and line-level) running in the browser.
+
+You should always prioritize performance, use Web Workers for heavy computations, UI virtualization for large outputs, and React hooks (useMemo, useCallback) to minimize re-renders.
+
+Please ensure strict TypeScript typing, modular code, and robust error handling for large or edge-case inputs, with unit tests and performance benchmarks to validate responsiveness and efficiency.
