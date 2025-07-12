@@ -1,4 +1,5 @@
 import { diffChars, diffWords } from 'diff';
+import { xxHash32 } from 'js-xxhash';
 import { DiffResultWithLineNumbers } from './types';
 import { processDiffWithWorker } from './workerManager';
 
@@ -126,6 +127,12 @@ const diffCache = new LRUCache<string, DiffResult>(500); // 增加缓存大小
 const MAX_CACHE_KEY_LENGTH = 1000; // 减少缓存键长度限制
 const cacheStats = { hits: 0, misses: 0 };
 
+// 使用 xxHash32 进行高效的字符串哈希
+function hashStr(str: string): number {
+  // 使用 xxHash32，seed 为 0
+  return xxHash32(str, 0);
+}
+
 // 更高效的缓存键生成，使用简单哈希
 function generateCacheKey(leftText: string, rightText: string, diffType: string): string {
   const totalLength = leftText.length + rightText.length;
@@ -135,23 +142,9 @@ function generateCacheKey(leftText: string, rightText: string, diffType: string)
   }
 
   // 使用简单哈希而不是字符串拼接
-  const leftHash = simpleHash(leftText);
-  const rightHash = simpleHash(rightText);
+  const leftHash = hashStr(leftText);
+  const rightHash = hashStr(rightText);
   return `${leftHash}:${rightHash}:${totalLength}:${diffType}`;
-}
-
-// 简单但快速的字符串哈希函数
-function simpleHash(str: string): number {
-  let hash = 0;
-  const step = Math.max(1, Math.floor(str.length / 100)); // 采样步长
-
-  for (let i = 0; i < str.length; i += step) {
-    const char = str.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
-    hash = hash & hash; // 转换为32位整数
-  }
-
-  return Math.abs(hash);
 }
 
 // 对文本进行差异比较，同时缓存结果
