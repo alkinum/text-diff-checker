@@ -135,9 +135,7 @@ const DiffViewer: React.FC = () => {
     [comparison]
   );
 
-  const editorsHeight = isMobile
-    ? "clamp(140px, calc((100svh - 456px) / 2), 246px)"
-    : "clamp(170px, calc((100svh - 372px) / 2), 292px)";
+  const editorsHeight = isMobile ? "clamp(140px, calc((100svh - 456px) / 2), 246px)" : undefined;
   const outputPanelHeight = isMobile
     ? "h-[min(68svh,640px)] min-h-[420px]"
     : "h-[min(82vh,920px)]";
@@ -242,7 +240,8 @@ const DiffViewer: React.FC = () => {
       <div className="flex flex-col gap-4 xl:grid xl:grid-cols-[minmax(0,0.94fr)_minmax(0,1.06fr)] xl:items-start">
         <div
           className={cn(
-            "space-y-4 xl:col-start-1 xl:row-start-1",
+            "flex flex-col gap-4 xl:col-start-1 xl:row-start-1",
+            !isMobile && "xl:h-[min(82vh,920px)] xl:min-h-[680px]",
             isMobile ? (mobilePane === "edit" ? "block" : "hidden") : "order-2 xl:order-none"
           )}
         >
@@ -306,51 +305,55 @@ const DiffViewer: React.FC = () => {
             </div>
           </section>
 
-          <section className="surface-panel px-4 py-4 sm:px-5">
-            <div className="mb-3 flex items-center justify-between gap-3">
-              <h2 className="text-sm font-medium tracking-normal">Original</h2>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setLeftText("")}
-                disabled={!leftText}
-                className="h-9 w-9 rounded-[12px] border border-border/70 bg-background/70 text-muted-foreground shadow-sm hover:bg-surface-muted/80 hover:text-foreground"
-                title="Clear original text"
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
-            </div>
-            <LineNumberedTextarea
-              id="original"
-              value={leftText}
-              onChange={(event) => setLeftText(event.target.value)}
-              height={editorsHeight}
-              language={currentLanguage}
-            />
-          </section>
+          <div className="flex min-h-0 flex-1 flex-col gap-4">
+            <section className="surface-panel flex min-h-0 flex-1 flex-col px-4 py-4 sm:px-5">
+              <div className="mb-3 flex items-center justify-between gap-3">
+                <h2 className="text-sm font-medium tracking-normal">Original</h2>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setLeftText("")}
+                  disabled={!leftText}
+                  className="h-9 w-9 rounded-[12px] border border-border/70 bg-background/70 text-muted-foreground shadow-sm hover:bg-surface-muted/80 hover:text-foreground"
+                  title="Clear original text"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+              <LineNumberedTextarea
+                id="original"
+                value={leftText}
+                onChange={(event) => setLeftText(event.target.value)}
+                height={editorsHeight}
+                containerClassName={isMobile ? undefined : "flex-1 min-h-0"}
+                language={currentLanguage}
+              />
+            </section>
 
-          <section className="surface-panel px-4 py-4 sm:px-5">
-            <div className="mb-3 flex items-center justify-between gap-3">
-              <h2 className="text-sm font-medium tracking-normal">Modified</h2>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setRightText("")}
-                disabled={!rightText}
-                className="h-9 w-9 rounded-[12px] border border-border/70 bg-background/70 text-muted-foreground shadow-sm hover:bg-surface-muted/80 hover:text-foreground"
-                title="Clear modified text"
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
-            </div>
-            <LineNumberedTextarea
-              id="modified"
-              value={rightText}
-              onChange={(event) => setRightText(event.target.value)}
-              height={editorsHeight}
-              language={currentLanguage}
-            />
-          </section>
+            <section className="surface-panel flex min-h-0 flex-1 flex-col px-4 py-4 sm:px-5">
+              <div className="mb-3 flex items-center justify-between gap-3">
+                <h2 className="text-sm font-medium tracking-normal">Modified</h2>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setRightText("")}
+                  disabled={!rightText}
+                  className="h-9 w-9 rounded-[12px] border border-border/70 bg-background/70 text-muted-foreground shadow-sm hover:bg-surface-muted/80 hover:text-foreground"
+                  title="Clear modified text"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+              <LineNumberedTextarea
+                id="modified"
+                value={rightText}
+                onChange={(event) => setRightText(event.target.value)}
+                height={editorsHeight}
+                containerClassName={isMobile ? undefined : "flex-1 min-h-0"}
+                language={currentLanguage}
+              />
+            </section>
+          </div>
         </div>
 
         <section
@@ -458,7 +461,7 @@ const DiffViewer: React.FC = () => {
                   {isComparing ? (
                     <Loader2 className="h-7 w-7 animate-spin text-muted-foreground" />
                   ) : (
-                    <ArrowRightLeft className="h-7 w-7 text-muted-foreground" />
+                    <FileDiffIcon className="h-7 w-7 text-muted-foreground" />
                   )}
                 </div>
               </div>

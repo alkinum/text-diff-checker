@@ -33,6 +33,7 @@ interface LineNumberedTextareaProps {
   placeholder?: string;
   id?: string;
   className?: string;
+  containerClassName?: string;
   height?: string;
   onScroll?: () => void;
   scrollRef?: React.RefObject<HTMLDivElement>;
@@ -45,7 +46,8 @@ const LineNumberedTextarea: React.FC<LineNumberedTextareaProps> = ({
   placeholder,
   id,
   className,
-  height = "300px",
+  containerClassName,
+  height,
   onScroll,
   scrollRef,
   language = "plaintext",
@@ -110,8 +112,11 @@ const LineNumberedTextarea: React.FC<LineNumberedTextareaProps> = ({
 
   return (
     <div
-      className="line-numbered-wrapper group w-full focus-within:border-ring/40 focus-within:shadow-[0_0_0_1px_hsl(var(--ring)/0.16),0_24px_70px_rgba(15,23,42,0.12)]"
-      style={{ height }}
+      className={cn(
+        "line-numbered-wrapper group w-full focus-within:border-ring/40 focus-within:shadow-[0_0_0_1px_hsl(var(--ring)/0.16),0_24px_70px_rgba(15,23,42,0.12)]",
+        containerClassName
+      )}
+      style={height ? { height } : undefined}
       ref={scrollRef}
     >
       <div
