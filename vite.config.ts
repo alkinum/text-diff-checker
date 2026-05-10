@@ -43,7 +43,7 @@ export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
     port: 8080,
-    allowedHost: ['d69cb91-1c99-407f-81d7-1c3adb32348b.lovableproject.com', 'localhost', '127.0.0.1', 'diff.pwp.sh']
+    allowedHosts: ['d69cb91-1c99-407f-81d7-1c3adb32348b.lovableproject.com', 'localhost', '127.0.0.1', 'diff.pwp.sh']
   },
   plugins: [
     react(),
@@ -57,8 +57,10 @@ export default defineConfig(({ mode }) => ({
   build: {
     rollupOptions: {
       output: {
-        manualChunks: {
-          vendor: ['react', 'react-dom'],
+        manualChunks(id) {
+          if (id.includes("node_modules")) {
+            return "vendor";
+          }
         },
       },
     },

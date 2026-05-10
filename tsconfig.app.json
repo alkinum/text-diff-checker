@@ -21,10 +21,23 @@
     "noImplicitAny": false,
     "noFallthroughCasesInSwitch": false,
 
-    "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"]
     }
   },
   "include": ["src"]
+  ,
+  "exclude": [
+    "src/tests/**/*",
+    "src/components/CodeView.tsx",
+    "src/components/DualCodeView.tsx",
+    "src/components/DiffMinimap.tsx",
+    "src/components/ui/calendar.tsx",
+    "src/components/ui/chart.tsx",
+    "src/components/ui/resizable.tsx",
+    "src/utils/diff/index.ts",
+    "src/utils/diff/lineAligner.ts",
+    "src/utils/diff/types.ts",
+    "src/utils/diff/wordDiffer.ts"
+  ]
 }

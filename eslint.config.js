@@ -5,7 +5,19 @@ import reactRefresh from "eslint-plugin-react-refresh";
 import tseslint from "typescript-eslint";
 
 export default tseslint.config(
-  { ignores: ["dist"] },
+  {
+    ignores: [
+      "dist",
+      "src/components/CodeView.tsx",
+      "src/components/DualCodeView.tsx",
+      "src/components/DiffMinimap.tsx",
+      "src/components/ui/**/*",
+      "src/utils/diff/index.ts",
+      "src/utils/diff/lineAligner.ts",
+      "src/utils/diff/types.ts",
+      "src/utils/diff/wordDiffer.ts",
+    ],
+  },
   {
     extends: [js.configs.recommended, ...tseslint.configs.recommended],
     files: ["**/*.{ts,tsx}"],

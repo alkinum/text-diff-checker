@@ -47,7 +47,11 @@ const ErrorBoundary = ({ children }: { children: React.ReactNode }) => {
   // 当网络恢复时重置错误状态
   useEffect(() => {
     if (isOnline && hasError) {
-      setHasError(false);
+      const timer = window.setTimeout(() => {
+        setHasError(false);
+      }, 0);
+
+      return () => window.clearTimeout(timer);
     }
   }, [isOnline, hasError]);
 

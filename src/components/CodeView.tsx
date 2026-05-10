@@ -31,174 +31,153 @@ interface CodeViewProps {
   language: string;
   lines?: DiffResultWithLineNumbers[];
   showLineNumbers?: boolean;
-  title?: string;
+  title?: string; // Kept for compatibility but not used if parent handles it
   scrollRef?: React.RefObject<HTMLDivElement>;
   horizontalScrollRef?: React.RefObject<HTMLPreElement>;
-  position?: 'left' | 'right'; // To determine if it's the left or right view
-  isExpanded?: boolean; // Added to control expansion
-  maxHeight?: string; // Added to control max height
+  position?: 'left' | 'right'; 
+  isExpanded?: boolean; 
+  maxHeight?: string; 
 }
 
-const LINE_HEIGHT = 'h-6'; // Consistent line height class
+const LINE_HEIGHT_CLASS = 'h-6'; 
 
 const CodeView: React.FC<CodeViewProps> = ({
   content,
   language,
   lines,
   showLineNumbers = true,
-  title,
-  position = 'left', // Default to left position
-  isExpanded = false, // Default to not expanded
-  maxHeight = '70vh', // Default max height
+  position = 'left',
+  isExpanded = false,
+  maxHeight = '70vh',
   scrollRef,
   horizontalScrollRef
 }) => {
   const codeRef = useRef<HTMLPreElement>(null);
   const isMobile = useIsMobile();
 
-  // Highlight code when component mounts or when content/language changes
   useEffect(() => {
     if (codeRef.current) {
       Prism.highlightElement(codeRef.current);
     }
   }, [content, language]);
 
-  // If we have line-by-line diff data
+  // Render Diff View
   if (lines && lines.length > 0) {
     return (
       <div
-        ref={scrollRef} // Assign scrollRef here
-        className="flex flex-col w-full relative scrollbar-none"
+        ref={scrollRef}
+        className="flex w-full overflow-y-auto scrollbar-thin bg-background"
         style={{
           maxHeight: !isExpanded ? maxHeight : 'none',
-          overflowY: !isExpanded ? 'auto' : 'visible'
         }}
       >
-        {title && !isMobile && (
-          <div className="px-4 py-2 font-medium text-sm bg-slate-100 dark:bg-slate-800/95 border-b sticky top-0 z-20 select-none">
-            {title}
+        {showLineNumbers && (
+          <div 
+            className="flex flex-col flex-shrink-0 text-right select-none bg-muted/20 border-r border-border/50 py-2"
+            style={{ minWidth: isMobile ? "32px" : "48px" }}
+          >
+            {lines.map((line, i) => (
+              <div
+                key={i}
+                className={`${LINE_HEIGHT_CLASS} leading-6 ${isMobile ? 'px-1 text-[10px]' : 'px-2 text-xs'} text-muted-foreground/50 font-mono`}
+              >
+                {line.spacer ? '\u00A0' : line.lineNumber}
+              </div>
+            ))}
           </div>
         )}
-        <div className="flex">
-          {showLineNumbers && (
-            <div className="line-numbers-container py-4 bg-slate-100 dark:bg-slate-800/95 sticky left-0 z-10 border-r border-border/50"
-                 style={{ minWidth: isMobile ? "32px" : "48px", borderRight: "1px solid var(--border)" }}>
-              {lines.map((line, i) => (
-                <div
-                  key={i}
-                  className={`leading-6 ${LINE_HEIGHT} ${isMobile ? 'px-1' : 'px-2'} text-xs text-right text-muted-foreground ${line.spacer ? 'text-transparent' : ''}`}
-                  style={{ fontSize: isMobile ? '10px' : undefined }}
-                >
-                  {line.spacer ? '\u00A0' : line.lineNumber}
-                </div>
-              ))}
-            </div>
-          )}
-          <pre
-            ref={horizontalScrollRef}
-            className={`p-4 ${isMobile ? 'pl-1' : 'pl-2'} m-0 flex-grow overflow-x-auto scrollbar-thin`}
+        
+        <pre
+          ref={horizontalScrollRef}
+          className="m-0 p-0 flex-grow overflow-x-auto scrollbar-thin py-2"
+        >
+          <code
+            className={`language-${language} block min-w-full w-max`}
           >
-            <code
-              className={`language-${language} whitespace-pre`}
-              style={{ display: 'table', width: 'max-content', minWidth: '100%' }}
-            >
-              {lines.map((line, i) => {
-                // Handle spacer lines
-                if (line.spacer) {
-                  return <div key={i} className={`block ${LINE_HEIGHT} leading-6`}>&nbsp;</div>;
-                }
+            {lines.map((line, i) => {
+              if (line.spacer) {
+                return <div key={i} className={`${LINE_HEIGHT_CLASS} leading-6`}>&nbsp;</div>;
+              }
 
-                // Determine line class based on position and line type
-                let className = `block ${LINE_HEIGHT} leading-6`;
+              let className = `${LINE_HEIGHT_CLASS} leading-6 px-4 w-full inline-block`;
 
-                if (position === 'left' && line.removed) {
-                  className += " line-removed";
-                } else if (position === 'right' && line.added) {
-                  className += " line-added";
-                }
+              if (position === 'left' && line.removed) {
+                className += " line-removed";
+              } else if (position === 'right' && line.added) {
+                className += " line-added";
+              } else if (line.modified) {
+                 // Optionally handle modified lines if we want a different background, 
+                 // but typically they are just containers for inline diffs.
+                 className += " line-modified"; 
+              }
 
-                // If this line has inline changes, render them
-                if (line.inlineChanges && line.inlineChanges.length > 0) {
-                  return (
-                    <div key={i} className={className}>
-                      {line.inlineChanges.map((part, j) => {
-                        // Skip rendering empty parts
-                        if (!part.value) return null;
-
-                        let spanClass = "";
-
-                        // Apply highlighting for removed parts in original (left)
-                        if (position === 'left' && part.removed) {
-                          spanClass = "token-removed";
-                        }
-                        // Apply highlighting for added parts in modified (right)
-                        else if (position === 'right' && part.added) {
-                          spanClass = "token-added";
-                        }
-
-                        return (
-                          <span
-                            key={j}
-                            className={spanClass}
-                            dangerouslySetInnerHTML={{
-                              __html: Prism.highlight(
-                                part.value,
-                                Prism.languages[language] || Prism.languages.plaintext,
-                                language
-                              )
-                            }}
-                          />
-                        );
-                      })}
-                    </div>
-                  );
-                }
-
-                // Regular line rendering (no inline changes)
+              // Inline changes
+              if (line.inlineChanges && line.inlineChanges.length > 0) {
                 return (
                   <div key={i} className={className}>
-                    <span
-                      dangerouslySetInnerHTML={{
-                        __html: Prism.highlight(
-                          line.value || " ",
-                          Prism.languages[language] || Prism.languages.plaintext,
-                          language
-                        )
-                      }}
-                    />
+                    {line.inlineChanges.map((part, j) => {
+                      if (!part.value) return null;
+                      
+                      let spanClass = "";
+                      if (position === 'left' && part.removed) {
+                        spanClass = "token-removed";
+                      } else if (position === 'right' && part.added) {
+                        spanClass = "token-added";
+                      }
+
+                      return (
+                        <span
+                          key={j}
+                          className={spanClass}
+                          dangerouslySetInnerHTML={{
+                            __html: Prism.highlight(
+                              part.value,
+                              Prism.languages[language] || Prism.languages.plaintext,
+                              language
+                            )
+                          }}
+                        />
+                      );
+                    })}
                   </div>
                 );
-              })}
-            </code>
-          </pre>
-        </div>
+              }
+
+              return (
+                <div key={i} className={className}>
+                  <span
+                    dangerouslySetInnerHTML={{
+                      __html: Prism.highlight(
+                        line.value || " ",
+                        Prism.languages[language] || Prism.languages.plaintext,
+                        language
+                      )
+                    }}
+                  />
+                </div>
+              );
+            })}
+          </code>
+        </pre>
       </div>
     );
   }
 
-  // Standard syntax highlighted view
+  // Render Standard Code View
   return (
     <div
       ref={scrollRef}
-      className="flex flex-col w-full scrollbar-none"
+      className="flex w-full overflow-y-auto scrollbar-thin bg-background"
       style={{
         maxHeight: !isExpanded ? maxHeight : 'none',
-        overflowY: !isExpanded ? 'auto' : 'visible'
       }}
     >
-      {title && !isMobile && (
-        <div className="px-4 py-2 font-medium text-sm bg-slate-100 dark:bg-slate-800/95 border-b sticky top-0 z-20">
-          {title}
-        </div>
-      )}
-      <div className="w-full">
-        <pre
-          ref={codeRef}
-          className="p-4 m-0 w-full overflow-x-auto scrollbar-thin"
-        >
-          <code className={`language-${language} whitespace-pre`}>{content || " "}</code>
-        </pre>
-      </div>
+      <pre
+        ref={codeRef}
+        className="m-0 p-4 w-full overflow-x-auto scrollbar-thin"
+      >
+        <code className={`language-${language} whitespace-pre`}>{content || " "}</code>
+      </pre>
     </div>
   );
 };

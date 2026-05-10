@@ -1,32 +1,20 @@
-
 import { Moon, Sun } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useTheme } from "@/components/ThemeProvider";
-import { useEffect, useState } from "react";
 
 export function ThemeToggle() {
-  const { setTheme, theme } = useTheme();
-  const [mounted, setMounted] = useState(false);
-
-  // Avoid hydration mismatch by only rendering after client-side
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  if (!mounted) return null;
+  const { resolvedTheme, setTheme } = useTheme();
+  const nextTheme = resolvedTheme === "light" ? "dark" : "light";
 
   return (
     <Button
-      variant="ghost"
-      size="sm"
-      className="px-2 rounded-full bg-background/80 backdrop-blur-sm border border-border/40 shadow-md hover:shadow-lg transition-all duration-300 ease-out transform hover:-translate-y-1 hover:bg-primary/10"
-      onClick={() => setTheme(theme === "light" ? "dark" : "light")}
+      variant="outline"
+      size="icon"
+      className="h-10 w-10 rounded-[14px] border-border/70 bg-background/80 text-muted-foreground shadow-sm hover:bg-surface-muted/80 hover:text-foreground"
+      onClick={() => setTheme(nextTheme)}
+      title="Toggle theme"
     >
-      {theme === "light" ? (
-        <Moon className="h-5 w-5 transition-transform duration-300 hover:rotate-12" />
-      ) : (
-        <Sun className="h-5 w-5 transition-transform duration-300 hover:rotate-90" />
-      )}
+      {resolvedTheme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
       <span className="sr-only">Toggle theme</span>
     </Button>
   );

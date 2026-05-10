@@ -24,7 +24,8 @@ const DiffMinimap: React.FC<DiffMinimapProps> = ({ lines, containerRef, position
       const scrollTop = container.scrollTop;
 
       const minimapHeight = minimapRef.current?.clientHeight || 100;
-      const ratio = minimapHeight / containerHeight;
+      // Prevent division by zero if containerHeight is 0
+      const ratio = containerHeight > 0 ? minimapHeight / containerHeight : 0;
 
       setViewportPosition({
         top: scrollTop * ratio,
@@ -44,7 +45,6 @@ const DiffMinimap: React.FC<DiffMinimapProps> = ({ lines, containerRef, position
 
   const handleMinimapClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (isDragging) return;
-
     if (!containerRef.current || !minimapRef.current) return;
 
     const minimapRect = minimapRef.current.getBoundingClientRect();
@@ -75,24 +75,17 @@ const DiffMinimap: React.FC<DiffMinimapProps> = ({ lines, containerRef, position
       if (!minimapRef.current || !containerRef.current) return;
 
       const mouseDeltaY = e.clientY - initialMouseY;
-
       const scrollRatio = minimapHeight / containerScrollHeight;
       const scrollDelta = mouseDeltaY / scrollRatio;
 
       let newScrollTop = initialScrollTop + scrollDelta;
-
       newScrollTop = Math.max(0, newScrollTop);
       newScrollTop = Math.min(containerScrollHeight - containerClientHeight, newScrollTop);
 
       requestAnimationFrame(() => {
         if (containerRef.current) {
           containerRef.current.scrollTop = newScrollTop;
-
-          const newRatio = newScrollTop / containerScrollHeight;
-          setViewportPosition((prev) => ({
-            ...prev,
-            top: newRatio * minimapHeight,
-          }));
+          // Viewport position updates via the scroll listener
         }
       });
     };
@@ -105,24 +98,17 @@ const DiffMinimap: React.FC<DiffMinimapProps> = ({ lines, containerRef, position
     };
 
     document.body.style.userSelect = 'none';
-
     document.addEventListener('mousemove', handleDragMove);
     document.addEventListener('mouseup', handleDragEnd);
   };
 
-  // Filter out spacer lines
   const nonSpacerLines = lines.filter((line) => !line.spacer);
+  const totalLines = maxTotalLines || nonSpacerLines.length || 1;
 
-  // Use maxTotalLines if provided, otherwise fall back to current side's line count
-  // This ensures minimap scales consistently across both sides
-  const totalLines = maxTotalLines || nonSpacerLines.length || 1; // Avoid division by zero
-
-  // Function to find groups of consecutive added/removed/modified lines
   const findChangedLineGroups = () => {
     const groups: { start: number; end: number; type: 'added' | 'removed' | 'modified' | 'extra' }[] = [];
     let currentGroup: { start: number; end: number; type: 'added' | 'removed' | 'modified' | 'extra' } | null = null;
 
-    // If no real lines, return no groups
     if (nonSpacerLines.length === 0) return groups;
 
     nonSpacerLines.forEach((line, index) => {
@@ -156,33 +142,29 @@ const DiffMinimap: React.FC<DiffMinimapProps> = ({ lines, containerRef, position
 
   const changedGroups = findChangedLineGroups();
 
-  // Only render minimap if we have meaningful content
   if (nonSpacerLines.length === 0) {
     return null;
   }
 
   return (
-    <div className={`absolute ${position === 'right' ? 'right-1.5' : 'right-1.5'} top-12 bottom-2 w-1.5 flex flex-col`}>
-      <div ref={minimapRef} className="flex-1 bg-slate-100 dark:bg-slate-800 rounded-full shadow-inner relative cursor-pointer overflow-hidden" onClick={handleMinimapClick}>
-        {/* Show changed blocks in the minimap */}
+    <div className="absolute right-1 top-2 bottom-2 w-3 flex flex-col z-10 transition-opacity hover:opacity-100 opacity-60">
+      <div 
+        ref={minimapRef} 
+        className="flex-1 bg-muted rounded-full relative cursor-pointer overflow-hidden border border-border/50" 
+        onClick={handleMinimapClick}
+      >
         {changedGroups.map((group, i) => {
-          // Calculate positions relative to the total maximum lines from both sides
-          // This ensures that both minimaps use the same scale
           const top = Math.min(100, (group.start / totalLines) * 100);
           const height = Math.max(1, Math.min(100 - top, ((group.end - group.start + 1) / totalLines) * 100));
 
           let colorClass = '';
-
-          // Only show relevant colors for each position
           if (position === 'left') {
-            // Left side shows removals and modifications
-            if (group.type === 'removed') colorClass = 'bg-red-500/80';
-            else if (group.type === 'modified') colorClass = 'bg-blue-500/80';
-            else if (group.type === 'extra') colorClass = 'bg-yellow-500/80';
+            if (group.type === 'removed') colorClass = 'bg-red-500';
+            else if (group.type === 'modified') colorClass = 'bg-blue-500';
+            else if (group.type === 'extra') colorClass = 'bg-yellow-500';
           } else {
-            // Right side shows additions and modifications
-            if (group.type === 'added') colorClass = 'bg-green-500/80';
-            else if (group.type === 'modified') colorClass = 'bg-blue-500/80';
+            if (group.type === 'added') colorClass = 'bg-green-500';
+            else if (group.type === 'modified') colorClass = 'bg-blue-500';
           }
 
           if (!colorClass) return null;
@@ -190,7 +172,7 @@ const DiffMinimap: React.FC<DiffMinimapProps> = ({ lines, containerRef, position
           return (
             <div
               key={i}
-              className={`absolute ${colorClass} w-full rounded-full`}
+              className={`absolute ${colorClass} w-full rounded-sm opacity-80`}
               style={{
                 top: `${top}%`,
                 height: `${Math.max(2, height)}%`,
@@ -199,13 +181,12 @@ const DiffMinimap: React.FC<DiffMinimapProps> = ({ lines, containerRef, position
           );
         })}
 
-        {/* Current viewport indicator - only show when not expanded */}
         {!isExpanded && (
           <div
-            className={`absolute bg-white/40 dark:bg-gray-300/40 w-full backdrop-blur-sm shadow-sm ${isDragging ? 'cursor-grabbing' : 'cursor-grab'} rounded`}
+            className={`absolute bg-foreground/20 hover:bg-foreground/30 w-full rounded-sm ${isDragging ? 'cursor-grabbing' : 'cursor-grab'} transition-colors`}
             style={{
               top: viewportPosition.top,
-              height: Math.max(15, viewportPosition.height),
+              height: Math.max(10, viewportPosition.height),
             }}
             onMouseDown={handleMouseDownOnViewport}
           />

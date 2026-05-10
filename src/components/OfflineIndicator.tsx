@@ -9,14 +9,18 @@ const OfflineIndicator = () => {
 
   useEffect(() => {
     if (!isOnline) {
-      setShowOfflineAlert(true);
-    } else {
-      // 延迟隐藏在线状态提示
       const timer = setTimeout(() => {
-        setShowOfflineAlert(false);
-      }, 3000);
+        setShowOfflineAlert(true);
+      }, 0);
       return () => clearTimeout(timer);
     }
+
+    // 延迟隐藏在线状态提示
+    const timer = setTimeout(() => {
+      setShowOfflineAlert(false);
+    }, 3000);
+
+    return () => clearTimeout(timer);
   }, [isOnline]);
 
   if (!showOfflineAlert) return null;

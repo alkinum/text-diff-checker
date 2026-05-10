@@ -3,10 +3,9 @@
 export function detectLanguage(content: string): string {
   if (!content.trim()) return 'plaintext';
 
-  const trimmedContent = content.trim();
-
   // JSON detection - must be valid JSON
-  if (/^\s*[{\[]/.test(content) && /[}\]]\s*$/.test(content)) {
+  if ((content.trimStart().startsWith('{') || content.trimStart().startsWith('[')) &&
+      (content.trimEnd().endsWith('}') || content.trimEnd().endsWith(']'))) {
     try {
       JSON.parse(content);
       return 'json';
@@ -48,8 +47,8 @@ export function detectLanguage(content: string): string {
       /^\s*sub\s+\w+\s*{/m.test(content) ||
       /\bmy\s*\(/m.test(content) ||
       /\$\w+/m.test(content) ||
-      /\@\w+/m.test(content) ||
-      /\bour\s+\@/m.test(content) ||
+      /@\w+/m.test(content) ||
+      /\bour\s+@/m.test(content) ||
       /\bqw\s*\(/m.test(content) ||
       (/^\s*package\s+\w+\s*;/m.test(content) && /\buse\s+/m.test(content))) {  // Perl package with use statement
     return 'perl';
